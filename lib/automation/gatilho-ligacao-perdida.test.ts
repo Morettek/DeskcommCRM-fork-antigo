@@ -231,6 +231,10 @@ function ligacaoPerdida(contactId: string = CONTATO): EventRow {
 beforeEach(() => {
   enviados.length = 0;
   evento = 0;
+  // A ação de envio respeita a janela 7h–22h do número: sem relógio fixo, o
+  // resultado dependia da hora em que a suíte rodava. 15:00Z = 12:00 em São Paulo.
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date("2026-11-11T15:00:00Z"));
 });
 
 afterEach(() => {
