@@ -19,9 +19,8 @@
  *     chave ("Additional property start_interval is not allowed"), e o kit só
  *     exige "docker compose v2".
  *
- * Sem parser YAML de propósito: nenhum está nas dependências (ver o cabeçalho
- * de `acolhida-nao-toca-no-fork.test.ts`). O recorte é por indentação, que é
- * como o próprio arquivo é escrito.
+ * Sem parser YAML de propósito: nenhum está nas dependências. O recorte é por
+ * indentação, que é como o próprio arquivo é escrito.
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
