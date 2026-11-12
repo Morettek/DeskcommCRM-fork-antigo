@@ -8,12 +8,21 @@
  * activates without code changes.
  */
 
+import { env } from "@/lib/env";
+
 export const NUVEMSHOP_AUTH_BASE = "https://www.tiendanube.com";
 export const NUVEMSHOP_API_BASE = "https://api.tiendanube.com/v1";
-// Só o nome do app: o contato era o e-mail pessoal do autor original. A URL do
-// repositório não entra porque `tests/unit/branding.test.ts` proíbe host de
-// terceiro e marca nova no código que embarca.
-export const APP_USER_AGENT = "DeskcommCRM";
+
+/**
+ * O User-Agent que a Nuvemshop exige: o nome do app e um contato (link ou
+ * e-mail); sem o cabeçalho ela responde 400. O contato é a instalação de quem
+ * opera, que é quem registra o app na Nuvemshop — e não o e-mail de uma pessoa.
+ * Lido de `env` em runtime: `process.env.NEXT_PUBLIC_*` direto é trocado no
+ * build, e a imagem genérica sai com o placeholder (ver lib/webhooks/url-publica.ts).
+ */
+export function appUserAgent(): string {
+  return `DeskcommCRM (${env.NEXT_PUBLIC_APP_URL.trim().replace(/\/+$/, "")})`;
+}
 
 export interface NuvemshopConfig {
   appId: string;

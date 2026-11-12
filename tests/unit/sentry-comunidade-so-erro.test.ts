@@ -236,6 +236,27 @@ describe("o ambiente da suíte desliga a telemetria", () => {
   it("e `off` de fato desliga — a guarda acima não vale nada se o valor não desligasse", () => {
     expect(resolveSentryDsn("off")).toBeUndefined();
     expect(resolveSentryDsn("OFF")).toBeUndefined();
+    // `false` em qualquer caixa também: "False" passava como DSN e o SDK tentava
+    // usá-lo. O banner do install.sh lê os mesmos valores como desligado.
+    for (const v of ["false", "False", "FALSE", "0", " Off "]) {
+      expect(resolveSentryDsn(v), v).toBeUndefined();
+    }
+  });
+
+  it("os quatro pontos de entrada passam `dsn: sentryDsn ?? \"\"`, nunca `undefined`", () => {
+    // Com `dsn: undefined` o SDK lê SENTRY_DSN do ambiente sozinho — e "off" ali
+    // não é DSN. As quatro chamadas de Sentry.init, uma por processo.
+    const entradas = [
+      "sentry.server.config.ts",
+      "sentry.edge.config.ts",
+      "instrumentation-client.ts",
+      "workers/agent-worker/main.ts",
+    ];
+    for (const arquivo of entradas) {
+      const fonte = readFileSync(path.join(process.cwd(), arquivo), "utf8");
+      expect(fonte, `${arquivo} não chama Sentry.init`).toContain("Sentry.init(");
+      expect(fonte, arquivo).toContain('dsn: sentryDsn ?? "",');
+    }
   });
 
   it("o PADRÃO é desligado: sem DSN configurado, nada sai da instalação", () => {

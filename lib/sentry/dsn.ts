@@ -17,7 +17,8 @@
  */
 export function resolveSentryDsn(value: string | undefined | null): string | undefined {
   const v = (value ?? "").trim();
-  if (v === "" || v.toLowerCase() === "off" || v === "false" || v === "0") return undefined;
+  const desligado = v.toLowerCase();
+  if (desligado === "" || desligado === "off" || desligado === "false" || desligado === "0") return undefined;
   return v;
 }
 
