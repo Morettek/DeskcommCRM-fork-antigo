@@ -569,6 +569,41 @@ assert_contains "$saida" "em Morettek/DeskcommCRM" "consulta os PRs do próprio 
 assert_not_contains "$saida" "a origin é um FORK" "não trata o produto como clone de contribuidor"
 assert_not_contains "$saida" "NNNN=0300" "a 0299 do remoto do original não vira o teto"
 assert_not_contains "$saida" "0299" "nem aparece como dono de número"
+# A exclusão é de REMOTO: uma branch LOCAL chamada `upstream/…` é desta máquina e conta. O
+# filtro olhava o 3º segmento de qualquer ref, e `refs/heads/upstream/minha` sumia da conta.
+git -C "$c" switch -q -c upstream/minha
+migrar "$c" "20260917224000_0350_local.sql"; commit "$c" "branch local com nome de remoto"
+git -C "$c" switch -q fix/pr
+saida="$(gate_prs "7" "$c")"
+assert_contains "$saida" "NNNN=0351" "branch LOCAL com nome de remoto do original continua na conta"
+
+echo "27c. as duas cópias da regra 'esta URL é do original?' respondem igual"
+# A biblioteca (pop_eh_o_original) e o gate (eh_o_original, que roda sem ela) repetem a
+# regra. Sem esta tabela, uma delas pode passar a aceitar uma forma de URL que a outra
+# recusa, e o hook e o CI medem populações diferentes sem ninguém ver.
+regra_bib="$(sed -n '/^pop_slug_de()/,/^}/p; /^pop_eh_o_original()/,/^}/p' "$RAIZ/scripts/migration-populacao.sh")"
+regra_gate="$(sed -n '/^eh_o_original()/,/^}/p' "$GATE_ORIGEM")"
+if [ -n "$regra_bib" ] && [ -n "$regra_gate" ]; then ok "as duas regras foram lidas dos arquivos"
+else falha "as duas regras foram lidas dos arquivos" "biblioteca: ${#regra_bib} caracteres, gate: ${#regra_gate}"; fi
+while IFS='|' read -r url esperado; do
+  bib="$(bash -c "$regra_bib"$'\n''pop_eh_o_original "$1" && echo sim || echo nao' _ "$url")"
+  gat="$(bash -c "$regra_gate"$'\n''eh_o_original "$1" && echo sim || echo nao' _ "$url")"
+  if [ "$bib" = "$esperado" ] && [ "$gat" = "$esperado" ]; then ok "${url:-<vazia>} → $esperado nas duas"
+  else falha "${url:-<vazia>} → $esperado nas duas" "biblioteca: $bib, gate: $gat"; fi
+done <<'TABELA'
+https://github.com/melgarafael/DeskcommCRM.git|sim
+https://github.com/melgarafael/DeskcommCRM|sim
+https://github.com/MelgaRafael/DESKCOMMCRM.git|sim
+https://github.com/melgarafael/DeskcommCRM/|sim
+git@github.com:melgarafael/DeskcommCRM.git|sim
+ssh://git@github.com/melgarafael/DeskcommCRM.git|sim
+https://github.com/Morettek/DeskcommCRM.git|nao
+git@github.com:Morettek/DeskcommCRM.git|nao
+https://github.com/melgarafael/deskcomm-site.git|nao
+https://github.com/fulano/melgarafael-DeskcommCRM.git|nao
+/srv/espelhos/DeskcommCRM.git|nao
+|nao
+TABELA
 
 echo "28. o próprio PR depois de AMEND não se acusa"
 # (a) amend só da mensagem: a cabeça publicada tem o MESMO arquivo, mas deixou de ser ancestral

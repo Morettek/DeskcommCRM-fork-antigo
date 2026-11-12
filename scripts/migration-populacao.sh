@@ -108,18 +108,27 @@ pop_repo_do_produto() {
   return 1
 }
 
-# pop_remotos_do_original — os remotos que apontam para o projeto ORIGINAL
-# (melgarafael/DeskcommCRM), de onde este fork saiu e que ele deixou de seguir.
-# As branches deles são de OUTRO produto: número usado lá não está tomado aqui,
-# e contá-lo mandaria renumerar migration por colisão que não existe.
+# pop_eh_o_original <url> — a URL aponta para o projeto ORIGINAL
+# (melgarafael/DeskcommCRM), de onde este fork saiu e que ele deixou de seguir?
+# A MESMA regra mora em `eh_o_original` (scripts/checar-colisao-de-migration.sh,
+# que roda sem esta biblioteca); tests/shell/colisao-de-migration.test.sh roda
+# as duas contra a mesma tabela de URLs.
+pop_eh_o_original() {
+  case "$(pop_slug_de "${1:-}")" in
+    melgarafael/deskcommcrm | */melgarafael/deskcommcrm) return 0 ;;
+  esac
+  return 1
+}
+
+# pop_remotos_do_original — os remotos cuja URL é a do projeto original. As
+# branches deles são de OUTRO produto: número usado lá não está tomado aqui, e
+# contá-lo mandaria renumerar migration por colisão que não existe.
 pop_remotos_do_original() {
-  local r url
+  local r
   for r in $(git remote 2>/dev/null); do
-    url="$(git config --get "remote.$r.url" 2>/dev/null || true)"
-    case "$(pop_slug_de "$url")" in
-      melgarafael/deskcommcrm | */melgarafael/deskcommcrm) printf '%s\n' "$r" ;;
-    esac
+    pop_eh_o_original "$(git config --get "remote.$r.url" 2>/dev/null || true)" && printf '%s\n' "$r"
   done
+  return 0
 }
 
 # pop_tem_remoto_de_github — existe algum remoto de GitHub (mesmo de fork)?
@@ -165,7 +174,7 @@ pop_refs_de_outrem() {
   git for-each-ref --format='%(objectname) %(refname)' refs/heads refs/remotes 2>/dev/null \
     | awk -v b="$bc" -v h="$hc" -v fora="$(pop_remotos_do_original | tr '\n' ' ')" '
         BEGIN { n = split(fora, f, " "); for (i = 1; i <= n; i++) original["refs/remotes/" f[i] "/"] = 1 }
-        { split($2, p, "/"); if (("refs/remotes/" p[3] "/") in original) next }
+        { split($2, p, "/"); if (p[2] == "remotes" && (("refs/remotes/" p[3] "/") in original)) next }
         $1 != b && $1 != h && $2 !~ /\/HEAD$/ \
           && $2 !~ /^refs\/remotes\/(.+\/)?pr\/[0-9]+$/ { print $2 }'
   [ -n "$base" ] || return 0

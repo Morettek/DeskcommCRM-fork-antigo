@@ -374,9 +374,12 @@ describe("a população inclui as branches REMOTAS, e deixa de fora as cópias d
     git(clone, "remote", "add", "original", "https://github.com/melgarafael/DeskcommCRM.git");
     git(clone, "update-ref", "refs/remotes/original/do-original", "refs/heads/do-original");
     git(clone, "update-ref", "refs/remotes/origin/do-original", "refs/heads/do-original");
+    // A exclusão é de REMOTO: a branch LOCAL `original/minha` é desta máquina e conta.
+    git(clone, "update-ref", "refs/heads/original/minha", "refs/heads/do-original");
     const refs = bashComBiblioteca(clone, 'pop_refs_de_outrem ""').stdout;
     expect(refs, "controle: sob outro remoto a mesma branch entra").toContain("refs/remotes/origin/do-original");
     expect(refs).not.toContain("refs/remotes/original/");
+    expect(refs, "branch local com nome de remoto do original segue na conta").toContain("refs/heads/original/minha");
   });
 
   it("a cópia em refs/remotes/*/pr/N NÃO entra: ela sobrevive ao fechamento do PR", () => {
