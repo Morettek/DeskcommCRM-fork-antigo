@@ -17,8 +17,10 @@ KIT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
 
 REPO_URL="${REPO_URL:-https://github.com/Morettek/DeskcommCRM.git}"
 # Uma constante, dois usos (o fim feliz e o fim travado) — e o comecar.sh tem a
-# gêmea. Link repetido à mão vira link divergente na primeira troca.
-COMUNIDADE_URL="https://lp-comunidade.automatiklabs.com.br"
+# gêmea. Link repetido à mão vira link divergente na primeira troca. São as
+# issues deste repositório: a comunidade que este link apontava era a do
+# projeto original.
+SUPORTE_URL="https://github.com/Morettek/DeskcommCRM/issues"
 REPO_DIR="${REPO_DIR:-deskcommcrm}"
 COMPOSE="docker-compose.prod.yml"
 COMPOSE_TRAEFIK="docker-compose.traefik.yml"
@@ -693,6 +695,9 @@ RASCUNHO_NAO_GUARDA=" SUPABASE_ACCESS_TOKEN "
 save_partial() {
   local var="$1" val="${!1-}" tmp="${PARTIAL_FILE}.tmp.$$"
   case "$RASCUNHO_NAO_GUARDA" in *" $var "*) return 0 ;; esac
+  # A imagem do app só entra no rascunho depois de passar na conferência do
+  # registro (ver `APP_IMAGE_CONFERIDA`, depois da tela de conferência).
+  [ "$var" = APP_IMAGE ] && [ -z "${APP_IMAGE_CONFERIDA:-}" ] && return 0
   umask 077
   { [ -f "$PARTIAL_FILE" ] && grep -vE "^${var}=" "$PARTIAL_FILE" || true; } > "$tmp"
   envq "$var" "$val" >> "$tmp"
@@ -1386,8 +1391,6 @@ fi
 #
 # Resolvido no REMOTO porque o clone é `--depth 1` e não traz tag nenhuma.
 # Em ARM64 a versão já foi resolvida e conferida pelo pré-voo, lá em cima.
-[ "$PLATAFORMA_HOST" = linux/arm64 ] || VERSAO_ALVO="$(ultima_versao_publicada "$REPO_URL")"
-
 # A tag do git é condição NECESSÁRIA, não suficiente: ela nasce minutos antes
 # das imagens, e `deskcomm-worker`/`deskcomm-scheduler` só passaram a existir
 # depois das releases que já estão publicadas — `deskcomm-worker:1.2.1` nunca
@@ -1395,33 +1398,17 @@ fi
 # cliente receberia duas referências impossíveis e o kit as construiria aqui em
 # silêncio, do topo da main: app de uma release + worker de outro código.
 #
-# Cascata, do mais específico ao mais disponível. Cada nível pergunta pelas TRÊS
+# Cascata, do mais específico ao mais disponível, em `resolver_versao_da_instalacao`
+# (_common.sh): o install-single-server.sh pergunta a MESMA coisa antes de subir
+# o Supabase dele, e a regra mora num lugar só. Cada nível pergunta pelas TRÊS
 # imagens juntas, porque instalar com elas desalinhadas é o defeito, não a
 # solução.
-if [ "$PLATAFORMA_HOST" = linux/arm64 ]; then
-  : # pré-voo OCI já passou
-elif [ -n "$VERSAO_ALVO" ] && trio_publicado "$VERSAO_ALVO"; then
-  : # o caminho normal: as três publicadas na última versão
-elif trio_publicado "stable"; then
-  c_ylw "$(t "⚠ A versão {1} ainda não tem as três imagens publicadas." "${VERSAO_ALVO:-$(t "mais recente")}")"
-  c_ylw "$(t "  Instalando pelo canal 'stable' (a última versão completa).")"
-  VERSAO_ALVO="stable"
-elif [ -n "$VERSAO_ALVO" ]; then
-  # Nem a versão nem o `stable` têm o trio. Segue assim mesmo — o compose tem
-  # `build:` ao lado do `image:` do worker e do scheduler, então eles são
-  # construídos aqui. É lento, mas instala. O que NÃO pode é isso acontecer
-  # calado: o dono precisa saber que duas peças dele saíram do fonte local.
-  c_ylw "$(t "⚠ As imagens do worker e do agendador ainda não estão publicadas.")"
-  c_ylw "$(t "  Elas serão construídas neste servidor — leva alguns minutos a mais.")"
-  c_ylw "$(t "  Rode 'bash hostgator-setup-kit/update.sh' quando a próxima versão sair.")"
-else
-  # Falha ABERTA: sem rede ou sem tag no remoto, segue como antes. Travar a
-  # instalação por não resolver um número seria trocar previsibilidade por
-  # disponibilidade — mas o aviso sai, porque o dono precisa saber que ficou
-  # num canal móvel em vez de numa versão.
-  VERSAO_ALVO="latest"
-  c_ylw "$(t "⚠ Não consegui descobrir a última versão publicada (rede?).")"
-  c_ylw "$(t "  Instalando pelo canal 'latest'. Depois rode: bash hostgator-setup-kit/update.sh")"
+CAMINHO_DA_VERSAO="trio"   # ARM64: o pré-voo OCI já passou
+if [ "$PLATAFORMA_HOST" != linux/arm64 ]; then
+  VERSAO_PUBLICADA="$(ultima_versao_publicada "$REPO_URL")"
+  _versao="$(resolver_versao_da_instalacao "$VERSAO_PUBLICADA")"
+  VERSAO_ALVO="${_versao%|*}"; CAMINHO_DA_VERSAO="${_versao#*|}"
+  unset _versao
 fi
 IMAGEM_APP_DEFAULT="${IMG_APP}:${VERSAO_ALVO}"
 
@@ -1429,15 +1416,43 @@ IMAGEM_APP_DEFAULT="${IMG_APP}:${VERSAO_ALVO}"
 # Num namespace sem pacote (um fork que ainda não publicou, ou pacote privado)
 # a instalação criava o projeto Supabase, aplicava o schema e só morria no
 # `up -d`. A conferência mora em `conferir_imagem_do_app` (_common.sh), com a
-# mesma sonda de registro do `trio_publicado`. Nada foi criado ainda, então a
-# saída é a do pré-voo ARM64 acima: sem o painel de recuperação, que sugeriria
-# desfazer o que não existe.
+# mesma sonda de registro do `trio_publicado`, e vem ANTES dos avisos da
+# cascata: sem a imagem do app, quem instala vê só a recusa, e não "as imagens
+# serão construídas aqui" seguido de "não instalei". Projeto, .env e schema
+# ainda não existem, então a saída é a do pré-voo ARM64 acima: sem o painel de
+# recuperação, que sugeriria desfazer o que não existe.
 IMAGEM_CONFERIDA="${APP_IMAGE:-$IMAGEM_APP_DEFAULT}"
-if ! conferir_imagem_do_app "$IMAGEM_CONFERIDA"; then
+recusar_imagem_do_app() {
   c_red "✖ $(t "Não instalei: a imagem do app não está disponível. Confira a referência acima; para construir as imagens aqui DE PROPÓSITO: {1}" "DESKCOMM_BUILD_LOCAL=1 bash hostgator-setup-kit/install.sh --yes")"
+  [ -z "${APP_IMAGE:-}" ] || c_red "  $(t "A referência é a APP_IMAGE do .env: corrija-a, ou apague a linha APP_IMAGE= para usar a versão publicada, e rode de novo.")"
   trap - EXIT
   exit 1
-fi
+}
+conferir_imagem_do_app "$IMAGEM_CONFERIDA" || recusar_imagem_do_app
+
+case "$CAMINHO_DA_VERSAO" in
+  stable)
+    c_ylw "$(t "⚠ A versão {1} ainda não tem as três imagens publicadas." "${VERSAO_PUBLICADA:-$(t "mais recente")}")"
+    c_ylw "$(t "  Instalando pelo canal 'stable' (a última versão completa).")"
+    ;;
+  build)
+    # Nem a versão nem o `stable` têm o trio. Segue assim mesmo — o compose tem
+    # `build:` ao lado do `image:` do worker e do scheduler, então eles são
+    # construídos aqui. É lento, mas instala. O que NÃO pode é isso acontecer
+    # calado: o dono precisa saber que duas peças dele saíram do fonte local.
+    c_ylw "$(t "⚠ As imagens do worker e do agendador ainda não estão publicadas.")"
+    c_ylw "$(t "  Elas serão construídas neste servidor — leva alguns minutos a mais.")"
+    c_ylw "$(t "  Rode 'bash hostgator-setup-kit/update.sh' quando a próxima versão sair.")"
+    ;;
+  latest)
+    # Falha ABERTA: sem rede ou sem tag no remoto, segue como antes. Travar a
+    # instalação por não resolver um número seria trocar previsibilidade por
+    # disponibilidade — mas o aviso sai, porque o dono precisa saber que ficou
+    # num canal móvel em vez de numa versão.
+    c_ylw "$(t "⚠ Não consegui descobrir a última versão publicada (rede?).")"
+    c_ylw "$(t "  Instalando pelo canal 'latest'. Depois rode: bash hostgator-setup-kit/update.sh")"
+    ;;
+esac
 
 # ── Supabase automático (opcional) ──────────────────────────────────────────
 # Criar o projeto no navegador e copiar 4 campos era o passo mais LENTO da
@@ -1573,11 +1588,14 @@ fi
 
 # APP_IMAGE trocada na tela de conferência: a referência nova também é
 # conferida antes de segredo, .env ou schema.
-if [ "${APP_IMAGE:-}" != "$IMAGEM_CONFERIDA" ] && ! conferir_imagem_do_app "${APP_IMAGE:-}"; then
-  c_red "✖ $(t "Não instalei: a imagem do app não está disponível. Confira a referência acima; para construir as imagens aqui DE PROPÓSITO: {1}" "DESKCOMM_BUILD_LOCAL=1 bash hostgator-setup-kit/install.sh --yes")"
-  trap - EXIT
-  exit 1
+if [ "${APP_IMAGE:-}" != "$IMAGEM_CONFERIDA" ]; then
+  conferir_imagem_do_app "${APP_IMAGE:-}" || recusar_imagem_do_app
 fi
+# Só agora a APP_IMAGE vai para o rascunho (`save_partial` a segura até aqui):
+# gravada antes, uma referência recusada voltaria na rodada seguinte e seria
+# recusada ANTES da tela de conferência, sem saída pelo instalador.
+APP_IMAGE_CONFERIDA=1
+[ -z "${APP_IMAGE:-}" ] || save_partial APP_IMAGE
 
 # Derivados
 NEXT_PUBLIC_APP_URL="https://${DOMAIN}"
@@ -2635,9 +2653,9 @@ $(c_ylw "═══════════════════════�
   $(t "Quando der 307, rode de novo o mesmo comando de instalação: ele confere")
   $(t "o que falta e termina, sem apagar nada.")
 
-  $(t "Travou? Leve o log para a comunidade — tem gente que já passou por isso:")
+  $(t "Travou? Abra uma issue com o log (sem senhas nem chaves):")
 
-       ${COMUNIDADE_URL}
+       ${SUPORTE_URL}
 
 SEM_CADEADO
     trap apaga_temporarios EXIT
@@ -2666,9 +2684,9 @@ $(c_ylw "═══════════════════════�
 
        docker compose $(dc_files) up -d
 
-  $(t "Travou? Leve o log para a comunidade — tem gente que já passou por isso:")
+  $(t "Travou? Abra uma issue com o log (sem senhas nem chaves):")
 
-       ${COMUNIDADE_URL}
+       ${SUPORTE_URL}
 
 INCOMPLETO
   # Sai != 0 para que automação (e o --yes) saiba que não terminou saudável,
@@ -2720,12 +2738,11 @@ $(pendencia_da_ia)
        $(t "Configurações → Segurança (guarde os códigos de recuperação).")
        $(t "Perdeu o celular?") bash hostgator-setup-kit/reset-mfa.sh ${OWNER_EMAIL}
 
-$(c_grn "  ─── $(t "A comunidade") ──────────────────────────────────────")
+$(c_grn "  ─── $(t "Dúvidas e problemas") ──────────────────────────────────")
 
-  $(t "É onde saem os avisos de versão nova, os agentes que outras pessoas já")
-  $(t "configuraram e a resposta de quem roda exatamente este CRM:")
+  $(t "Abra uma issue no repositório, com o que apareceu na tela:")
 
-       ${COMUNIDADE_URL}
+       ${SUPORTE_URL}
 
 $(telemetria_no_banner)
 

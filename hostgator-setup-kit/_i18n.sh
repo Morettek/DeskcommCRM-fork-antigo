@@ -470,7 +470,7 @@ identifica su red y pon TRAEFIK_NETWORK=<nombre> en el .env antes de volver a in
   ["procure por: [env] Falha de validação"]="busca: [env] Falha de validação"
   ["Diagnóstico completo dos serviços:"]="Diagnóstico completo de los servicios:"
   ["Depois de corrigir o .env, é só subir de novo (nada é perdido):"]="Después de corregir el .env, solo levántalo de nuevo (no se pierde nada):"
-  ["Travou? Leve o log para a comunidade — tem gente que já passou por isso:"]="¿Se atascó? Lleva el log a la comunidad — hay gente que ya pasó por esto:"
+  ["Travou? Abra uma issue com o log (sem senhas nem chaves):"]="¿Se atascó? Abre un issue con el log (sin contraseñas ni claves):"
   # variante "quase lá" sem certificado: o app no confió en el HTTPS de su propio dominio
   ["Quase lá — falta o cadeado (HTTPS) do seu domínio"]="Ya casi — falta el candado (HTTPS) de tu dominio"
   ["refazer nada — o certificado de {1} ainda não saiu."]="rehacer nada — el certificado de {1} todavía no salió."
@@ -480,8 +480,10 @@ identifica su red y pon TRAEFIK_NETWORK=<nombre> en el .env antes de volver a in
   ["o que falta e termina, sem apagar nada."]="lo que falta y termina, sin borrar nada."
 
   # ── _common.sh: conferir_imagem_do_app() ─────────────────────────────────
-  ["A imagem do app {1} não está disponível no registro (HTTP {2})."]="La imagen de la app {1} no está disponible en el registro (HTTP {2})."
-  ["Essa versão ainda não foi publicada, ou o pacote não está público. Nada foi criado nem alterado."]="Esa versión aún no se publicó, o el paquete no es público. No se creó ni se modificó nada."
+  ["Este repositório ainda não publicou a versão {1} da imagem do app: {2} (HTTP 404)."]="Este repositorio aún no publicó la versión {1} de la imagen de la app: {2} (HTTP 404)."
+  ["O registro recusou a imagem do app {1} (HTTP {2}): o pacote não existe, ou é privado e a credencial do Docker desta máquina não o alcança."]="El registro rechazó la imagen de la app {1} (HTTP {2}): el paquete no existe, o es privado y la credencial de Docker de esta máquina no lo alcanza."
+  ["Nenhum projeto Supabase, .env ou schema foi criado."]="No se creó ningún proyecto de Supabase, .env ni esquema."
+  ["A referência é a APP_IMAGE do .env: corrija-a, ou apague a linha APP_IMAGE= para usar a versão publicada, e rode de novo."]="La referencia es la APP_IMAGE del .env: corrígela, o borra la línea APP_IMAGE= para usar la versión publicada, y vuelve a ejecutar."
   ["Não instalei: a imagem do app não está disponível. Confira a referência acima; para construir as imagens aqui DE PROPÓSITO: {1}"]="No instalé: la imagen de la app no está disponible. Revisa la referencia de arriba; para construir las imágenes aquí A PROPÓSITO: {1}"
   # ── install.sh: telemetria_no_banner() ───────────────────────────────────
   ["  Telemetria: DESLIGADA — nenhum relatório de erro sai desta instalação."]="  Telemetría: DESACTIVADA — ningún reporte de error sale de esta instalación."
@@ -504,9 +506,8 @@ identifica su red y pon TRAEFIK_NETWORK=<nombre> en el .env antes de volver a in
   ["A verificação em duas etapas é OPCIONAL: quem quiser liga em"]="La verificación en dos pasos es OPCIONAL: quien quiera la activa en"
   ["Configurações → Segurança (guarde os códigos de recuperação)."]="Configuración → Seguridad (guarda los códigos de recuperación)."
   ["Perdeu o celular?"]="¿Perdiste el celular?"
-  ["A comunidade"]="La comunidad"
-  ["É onde saem os avisos de versão nova, os agentes que outras pessoas já"]="Es donde salen los avisos de versión nueva, los agentes que otras personas ya"
-  ["configuraram e a resposta de quem roda exatamente este CRM:"]="configuraron y la respuesta de quien corre exactamente este CRM:"
+  ["Dúvidas e problemas"]="Dudas y problemas"
+  ["Abra uma issue no repositório, com o que apareceu na tela:"]="Abre un issue en el repositorio, con lo que apareció en la pantalla:"
   ["Comandos úteis:"]="Comandos útiles:"
   ["ver logs:"]="ver logs:"
   ["reiniciar:"]="reiniciar:"

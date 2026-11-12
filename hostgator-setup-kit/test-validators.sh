@@ -2072,7 +2072,16 @@ STUBOCI
 #!/usr/bin/env bash
 case "$*" in
   *releases/latest*) printf '{"tag_name":"%s"}' "${DUBLE_RELEASE_TAG:-v1.66.1}" ;;
-  *ghcr.io/token*) printf '{"token":"dublê"}' ;;
+  # `DUBLE_GHCR_TOKEN=403`: o GHCR recusa já no TOKEN (pacote inexistente ou
+  # privado). O corpo vem com o código no fim, como o `-w` do `ghcr_status` pede.
+  *ghcr.io/token*)
+    if [ -n "${DUBLE_GHCR_TOKEN:-}" ]; then printf '{"errors":[{"code":"DENIED"}]}\n%s' "$DUBLE_GHCR_TOKEN"
+    else printf '{"token":"dublê"}'; fi ;;
+  # Um registro que não é o GHCR responde 401 no caminho de token do GHCR: se a
+  # conferência o consultasse, recusaria uma imagem que ela não sabe medir.
+  *registry.example.com/token*) printf '{"errors":[]}\n401' ;;
+  # A tag `nao-existe` não existe em nenhum namespace (a troca na tela de conferência).
+  *"/manifests/nao-existe"*) printf 404 ;;
   *ghcr.io/v2/*/deskcommcrm/manifests/*) printf '%s' "${DUBLE_GHCR_APP:-${DUBLE_GHCR:-200}}" ;;
   *ghcr.io/v2/*)   printf '%s' "${DUBLE_GHCR:-200}" ;;
   # O v_supabase_url exige o GoTrue: o JSON de /auth/v1/verify sem parâmetros.
@@ -2550,29 +2559,76 @@ rm -rf "$TMP_PRIV"
 echo "packaging: sem a imagem do APP no registro, recusa ANTES de criar qualquer coisa"
 # Medido no fork que ainda não publicou: o kit aponta para um namespace sem pacote,
 # e o install.sh criava o projeto Supabase, aplicava o schema e só morria no
-# `up -d`. A recusa agora vem antes de projeto, segredo, .env e schema. O remoto
-# é um caminho que não existe: a versão volta vazia sem ir à rede, e o alvo é
-# `latest` — o que importa aqui é a imagem, não o número.
-imagem_do_app_caso() {  # imagem_do_app_caso <descrição> <DUBLE_GHCR_APP> <linha extra do .env> <recusa|segue>
-  local desc="$1" status="$2" extra="$3" espera="$4" raiz
+# `up -d`. A recusa agora vem antes de projeto, segredo, .env e schema.
+#
+# O remoto é um FIXTURE local com a tag v1.0.0, como o fork que herdou as tags
+# do original e não publicou imagem para elas: a versão resolve para 1.0.0, a
+# cascata cai no ramo "construir aqui" — e quem instala tem de ver só a recusa,
+# não "as imagens serão construídas" seguido de "não instalei".
+#
+# imagem_do_app_caso <descrição> <recusa|segue> <linha extra do .env> [VAR=valor…]
+#   As VAR=valor vão para o ambiente do install.sh (dublês do registro e do Docker).
+#   `MARCA_DO_PROVISION=nao|sim` confere a marca do supabase-provision.sh dublê.
+imagem_do_app_caso() {
+  local desc="$1" espera="$2" extra="$3" raiz
+  shift 3
   raiz="$(mktemp -d)"
   (
+    for kv in "$@"; do export "${kv?}"; done
     montar_vps "$raiz" "crmimg" <<'STUB'
 #!/usr/bin/env bash
 printf '%s\n' "$*" >> "$DOCKER_LOG"
 case "$1" in
   compose) case "$*" in *" exec "*) printf 'healthy\n{"data":{"status":"healthy"}}\n' ;; esac; exit 0 ;;
+  # `docker manifest inspect` usa a credencial local: só alcança com `docker login`.
+  manifest) [ -n "${DUBLE_DOCKER_LOGIN:-}" ] && exit 0; exit 1 ;;
 esac
 exit 0
 STUB
+    # O projeto Supabase criado AUTOMATICAMENTE é o primeiro efeito caro do
+    # install.sh. O dublê deixa uma marca: depois de uma recusa, ela não existe.
+    cat > "$raiz/supabase-provision.sh" <<'PROV'
+#!/usr/bin/env bash
+: > "$(dirname "$0")/marca-do-provision"
+printf "NEXT_PUBLIC_SUPABASE_URL='https://abcdefghijklmnop.supabase.co'\n"
+printf "NEXT_PUBLIC_SUPABASE_ANON_KEY='x'\nSUPABASE_SERVICE_ROLE_KEY='y'\n"
+printf "SUPABASE_DB_URL='postgresql://postgres.abcdefghijklmnop:s@aws-1-sa-east-1.pooler.supabase.com:5432/postgres'\n"
+PROV
     mkdir -p "$VPS_PROJ/supabase"; : > "$VPS_PROJ/supabase/baseline.sql"
-    export REPO_URL="$raiz/nao-existe.git" DUBLE_GHCR_APP="$status"
+    git init --quiet --bare "$raiz/origem.git"
+    (
+      cd "$raiz" || exit 1
+      git clone --quiet "$raiz/origem.git" w 2>/dev/null
+      cd w || exit 1
+      echo x > a; git add -A; git -c user.email=t@t -c user.name=t commit --quiet -m init
+      git tag v1.0.0; git push --quiet origin HEAD --tags 2>/dev/null
+    )
+    export REPO_URL="$raiz/origem.git"
     saida="$(rodar install.sh --yes "$extra")"
+    case "${MARCA_DO_PROVISION:-}" in
+      nao) if [ -e "$raiz/marca-do-provision" ]; then
+             printf '  ✗ %s — o projeto Supabase foi criado antes da recusa\n' "$desc"; exit 1
+           fi ;;
+      sim) if [ ! -e "$raiz/marca-do-provision" ]; then
+             printf '  ✗ %s — o dublê do provisionamento não rodou: o caso não mede o que diz\n' "$desc"; exit 1
+           fi
+           printf '  ✓ %s\n' "$desc"; exit 0 ;;
+    esac
     if [ "$espera" = recusa ]; then
-      if ! grep -qE "A imagem do app ghcr\.io/[a-z0-9-]+/deskcommcrm:[^ ]+ não está disponível no registro \(HTTP $status\)" <<<"$saida"; then
-        printf '  ✗ %s — a recusa não nomeou a referência completa da imagem do app\n' "$desc"
+      if ! grep -qE "ghcr\.io/[a-z0-9-]+/deskcommcrm:[^ ]+ \(HTTP ${STATUS_ESPERADO:-[0-9]+}\)" <<<"$saida"; then
+        printf '  ✗ %s — a recusa não nomeou a referência completa da imagem do app com o HTTP %s\n' "$desc" "${STATUS_ESPERADO:-}"
         printf '     saída: %s\n' "$(printf '%s' "$saida" | grep -v '^$' | tail -3 | tr '\n' ' ')"
         exit 1
+      fi
+      # A frase é fiel: antes da conferência o instalador pode ter instalado o
+      # Docker e clonado o repositório, mas não criou projeto, .env nem schema.
+      if ! grep -qF "Nenhum projeto Supabase, .env ou schema foi criado." <<<"$saida"; then
+        printf '  ✗ %s — a recusa não disse o que (não) foi criado\n' "$desc"; exit 1
+      fi
+      # Sem a imagem do app, quem instala vê só a recusa — não "as imagens
+      # serão construídas aqui" seguido de "não instalei".
+      if grep -q "serão construídas neste servidor" <<<"$saida"; then
+        printf '  ✗ %s — avisou que ia construir as imagens e depois recusou\n' "$desc"; exit 1
       fi
       # Nada foi criado: o .env continua o do cenário (sem segredo gerado) e o
       # schema não foi aplicado.
@@ -2588,10 +2644,70 @@ STUB
   ) || fail=1
   rm -rf "$raiz"
 }
-imagem_do_app_caso "imagem do app inexistente (404): recusa antes de .env e schema" 404 "" recusa
-imagem_do_app_caso "imagem do app privada (403): recusa antes de .env e schema" 403 "" recusa
-imagem_do_app_caso "imagem do app publicada (200): segue e escreve o .env" 200 "" segue
-imagem_do_app_caso "APP_PULL_POLICY=never (construída aqui): não consulta o registro e segue" 404 "APP_PULL_POLICY='never'" segue
+imagem_do_app_caso "imagem do app inexistente (404): recusa antes de .env e schema, sem prometer construir" \
+  recusa "" DUBLE_GHCR_APP=404 STATUS_ESPERADO=404
+imagem_do_app_caso "imagem do app privada (403 no manifesto): recusa antes de .env e schema" \
+  recusa "" DUBLE_GHCR_APP=403 STATUS_ESPERADO=403
+imagem_do_app_caso "o GHCR recusa já no TOKEN (403): recusa com HTTP 403, não lê como 'sem rede'" \
+  recusa "" DUBLE_GHCR_TOKEN=403 STATUS_ESPERADO=403
+imagem_do_app_caso "imagem do app publicada (200): segue e escreve o .env" segue ""
+imagem_do_app_caso "APP_PULL_POLICY=never (construída aqui): não consulta o registro e segue" \
+  segue "APP_PULL_POLICY='never'" DUBLE_GHCR_APP=404
+imagem_do_app_caso "imagem privada com 'docker login' nesta máquina: a credencial local alcança, e segue" \
+  segue "" DUBLE_GHCR_APP=403 DUBLE_DOCKER_LOGIN=1
+imagem_do_app_caso "registro que não é o GHCR: não é consultado, e não vira recusa" \
+  segue "APP_IMAGE='registry.example.com/eu/deskcommcrm:1.0.0'" DUBLE_GHCR_APP=404
+# O projeto Supabase AUTOMÁTICO (token no .env, URL vazia) é o efeito mais caro que
+# vem antes do .env. O caso de controle prova que o dublê está ligado: com a
+# imagem publicada, a marca existe.
+SUPABASE_AUTO="SUPABASE_ACCESS_TOKEN='sbp_teste'
+NEXT_PUBLIC_SUPABASE_URL=''"
+imagem_do_app_caso "com o projeto Supabase automático, a recusa vem ANTES de criá-lo" \
+  recusa "$SUPABASE_AUTO" DUBLE_GHCR_APP=404 MARCA_DO_PROVISION=nao
+imagem_do_app_caso "controle: com a imagem publicada, o projeto automático é criado (o dublê está ligado)" \
+  segue "$SUPABASE_AUTO" MARCA_DO_PROVISION=sim
+
+echo "packaging: APP_IMAGE trocada na tela de conferência é conferida, e a recusada não volta do rascunho"
+# A tela de conferência deixa trocar a APP_IMAGE. A referência nova é conferida
+# antes de segredo, .env e schema; e, recusada, NÃO pode ir para o .env.partial:
+# na rodada seguinte ela seria recusada ANTES da tela, sem saída pelo instalador.
+TMP_TROCA="$(mktemp -d)"
+(
+  montar_vps "$TMP_TROCA" "crmtroca" <<'STUB'
+#!/usr/bin/env bash
+printf '%s\n' "$*" >> "$DOCKER_LOG"
+case "$1" in
+  compose) case "$*" in *" exec "*) printf 'healthy\n{"data":{"status":"healthy"}}\n' ;; esac; exit 0 ;;
+  manifest) exit 1 ;;
+esac
+exit 0
+STUB
+  mkdir -p "$VPS_PROJ/supabase"; : > "$VPS_PROJ/supabase/baseline.sql"
+  export REPO_URL="$TMP_TROCA/nao-existe.git"
+  ruim="ghcr.io/exemplo/deskcommcrm:nao-existe"
+  # A fila de sempre até a tela de conferência; lá, item 3 (APP_IMAGE), a
+  # referência que não existe, e Enter para continuar.
+  fila="${RESTO_DAS_PERGUNTAS%%c*}"
+  fila="${fila%$'\n'}3"$'\n'"$ruim"$'\n\nc\n'
+  saida="$(rodar install.sh "" "" "$fila")"
+  if ! grep -qF "$ruim (HTTP 404)" <<<"$saida"; then
+    printf '  ✗ a APP_IMAGE trocada na tela de conferência não foi conferida\n'
+    printf '     saída: %s\n' "$(printf '%s' "$saida" | grep -v '^$' | tail -3 | tr '\n' ' ')"
+    exit 1
+  fi
+  printf '  ✓ a APP_IMAGE trocada na tela de conferência é conferida e recusada (HTTP 404)\n'
+  if grep -q '^APP_IMAGE=' "$VPS_PROJ/.env.partial" 2>/dev/null; then
+    printf '  ✗ a referência recusada foi para o rascunho: %s\n' "$(grep '^APP_IMAGE=' "$VPS_PROJ/.env.partial")"; exit 1
+  fi
+  saida="$(rodar install.sh --yes)"
+  if ! grep -qE '^OWNER_PASSWORD="' "$VPS_PROJ/.env"; then
+    printf '  ✗ a rodada seguinte não instalou (a referência recusada voltou?)\n'
+    printf '     saída: %s\n' "$(printf '%s' "$saida" | grep -v '^$' | tail -3 | tr '\n' ' ')"
+    exit 1
+  fi
+  printf '  ✓ e a rodada seguinte não a traz de volta do rascunho\n'
+) || fail=1
+rm -rf "$TMP_TROCA"
 
 echo "integração: os TRÊS provedores de IA que o instalador oferece"
 # A pergunta "qual IA vai atender" tem três respostas, e até aqui só uma delas

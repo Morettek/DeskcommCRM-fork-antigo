@@ -57,6 +57,15 @@ primeiro_efeito="$(grep -n 'mkdir -p "$RUNTIME_DIR"' "$INSTALLER" | cut -d: -f1)
 check "guardas de dono (CRM e Supabase) antes de criar qualquer coisa" \
   test "${guardas:-999}" -lt "${primeiro_efeito:-0}"
 
+# (a2) AMD64: a imagem do app é conferida ANTES de subir o Supabase, e é a MESMA
+# que o install.sh vai usar. Antes a recusa só vinha no `install.sh --yes`, com o
+# Supabase local de pé e o .env do CRM gravado.
+conferencia="$(grep -n 'conferir_imagem_do_app "\$_imagem_app"' "$INSTALLER" | cut -d: -f1)"
+check "AMD64 confere a imagem do app antes de criar qualquer coisa" \
+  test "${conferencia:-999}" -lt "${primeiro_efeito:-0}"
+check "single-server e install.sh resolvem a versão pela mesma função" \
+  bash -c 'grep -q "resolver_versao_da_instalacao" "$1" && grep -q "resolver_versao_da_instalacao" "$2"' _ "$INSTALLER" "$CANONICAL"
+
 # (e) Piso de RAM: o mesmo do install.sh (uma VPS de "4 GB" reporta ~3.735.000 KB).
 piso_ss="$(sed -n 's/^readonly RAM_MINIMA_KB=\([0-9]*\)$/\1/p' "$INSTALLER")"
 piso_canon="$(sed -n 's/^RAM_MINIMA_KB=\([0-9]*\)$/\1/p' "$CANONICAL")"
