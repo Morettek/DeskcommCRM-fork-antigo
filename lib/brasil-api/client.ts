@@ -27,7 +27,7 @@ const DEFAULT_TIMEOUT_MS = 8_000;
  * cadastro, o enriquecimento de `lib/crm-b2b/enrich.ts` e a importação em lote,
  * que usam este mesmo cliente.
  *
- * O valor é NEUTRO de propósito, e não reusa o `APP_USER_AGENT` de
+ * O valor é NEUTRO de propósito, e não reusa o `appUserAgent()` de
  * `lib/nuvemshop/config.ts`. Lá o nome do produto está na allowlist de marca
  * porque identifica uma aplicação REGISTRADA na Nuvemshop; aqui não há registro
  * nenhum. Mandar o nome da marca entregaria o revendedor a um terceiro,

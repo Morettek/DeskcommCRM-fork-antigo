@@ -111,7 +111,7 @@ When finishing an epic:
    > This list used to say "three required" and called `e2e` non-blocking. It was
    > out of date on both points, and whoever used it as a ruler would measure against the wrong ruler.
    > Check the source before trusting any written list:
-   > `gh api repos/melgarafael/DeskcommCRM/branches/main/protection --jq '.required_status_checks.contexts'`
+   > `gh api repos/Morettek/DeskcommCRM/branches/main/protection --jq '.required_status_checks.contexts'`
 
 ### Claiming an issue — the protocol
 
@@ -233,12 +233,12 @@ See [`README.en.md`](README.en.md) §Development — how to run locally.
 
 ## Support
 
-**[GitHub Discussions](https://github.com/melgarafael/DeskcommCRM/discussions)** — it is the public
-channel, works for anyone and is where the answer stays recorded for whoever comes after. For bugs,
-[open an issue](https://github.com/melgarafael/DeskcommCRM/issues/new/choose).
+**[Open an issue](https://github.com/Morettek/DeskcommCRM/issues/new/choose)** — question or bug. It is the public channel, works
+for anyone and is where the answer stays recorded for whoever comes after.
 
-If it is something that does not fit in public (security, for example): `rafael@maudibrasil.com.br` — the same
-address as in [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md).
+If it is something that does not fit in public (security, for example): GitHub's [private report](https://github.com/Morettek/DeskcommCRM/security/advisories/new),
+which reaches only the maintainers — the same channel as in [`SECURITY.md`](SECURITY.md) and
+[`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md).
 
 > This section used to point to an internal Discord whose invite lives in a private Notion — unreachable
 > precisely for whoever needed it most, who is the one coming from outside. It stays here as a reminder that

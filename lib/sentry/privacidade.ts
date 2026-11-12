@@ -6,9 +6,11 @@
  * removeu a opção e trocou por `dataCollection`, cujo default é o CONTRÁRIO —
  * omitir coleta IP, cookies, corpo de requisição e de resposta, entrada e saída
  * de IA, dados de query do banco e argumentos de fila (MIGRATION.md 11.0.0,
- * "`sendDefaultPii` is replaced by `dataCollection`"). Numa instalação padrão o
- * DSN é o Sentry da COMUNIDADE, então isso mandaria conversa de WhatsApp e dado
- * de paciente de terceiros da VPS do cliente para a nossa conta (issue #100).
+ * "`sendDefaultPii` is replaced by `dataCollection`"). Numa instalação padrão
+ * nada é enviado (sem `SENTRY_DSN`, o Sentry fica desligado); mas quem aponta
+ * para um Sentry mandaria conversa de WhatsApp e dado de paciente de terceiros
+ * da VPS do cliente para fora dela (issue #100), e era o que acontecia quando o
+ * padrão era o Sentry da comunidade.
  *
  * Por isso a coleta é declarada inteira aqui, e não deixada ao default de
  * nenhum SDK. A base é a que o guia documenta como "o comportamento do v10",

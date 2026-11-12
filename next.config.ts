@@ -128,9 +128,9 @@ export default withSentryConfig(nextConfig, {
   // For all available options, see:
   // https://www.npmjs.com/package/@sentry/webpack-plugin#options
 
-  org: "automatik-labs",
-
-  project: "javascript-nextjs",
+  // Sem `org`/`project` fixos: eram os do Sentry do projeto original. Quem quiser
+  // enviar source maps define SENTRY_ORG, SENTRY_PROJECT e SENTRY_AUTH_TOKEN no
+  // ambiente do build, que o plugin lê sozinho; sem token, nada é enviado.
 
   // Only print logs for uploading source maps in CI
   silent: !process.env.CI,

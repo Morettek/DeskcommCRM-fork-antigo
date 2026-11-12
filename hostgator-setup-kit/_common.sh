@@ -2534,7 +2534,7 @@ ler_rodada_do_banco() {
 # `publish-image.yml` digam o mesmo. Se você é um fork, é lá que está a lista do
 # que trocar junto — e, desde 18/09/2026, o CI do SEU fork não cobra este valor:
 # a asserção só vale quando o dono do runner é o dono deste repositório.
-IMG_NS="ghcr.io/melgarafael"
+IMG_NS="ghcr.io/morettek"
 IMG_APP="${IMG_NS}/deskcommcrm"
 IMG_WORKER="${IMG_NS}/deskcomm-worker"
 IMG_SCHEDULER="${IMG_NS}/deskcomm-scheduler"
@@ -2554,7 +2554,7 @@ IMG_VOICE_AGENT="${IMG_NS}/deskcomm-voice-agent"
 # alguém porque não deu para resolver um número de versão seria trocar um
 # problema de previsibilidade por um de disponibilidade.
 ultima_versao_publicada() {
-  local url="${1:-https://github.com/melgarafael/DeskcommCRM.git}" ref
+  local url="${1:-https://github.com/Morettek/DeskcommCRM.git}" ref
   command -v git >/dev/null 2>&1 || return 0
   # `grep -v -- -` descarta PRERELEASE (v1.11.0-rc1, v1.1.1-jmpo.1 — esta última
   # existe de verdade neste repo). O `--sort=-v:refname` do git põe o prerelease
@@ -2584,14 +2584,21 @@ ultima_versao_publicada() {
 # E o literal escapava da catraca por acidente: `namespace-das-imagens.test.ts`
 # procura a string contígua `ghcr.io/melgarafael`, e a URL do token a parte em
 # `ghcr.io/token?scope=repository:melgarafael/`.
+#
+# O GHCR recusa já no TOKEN (403) o pacote que não existe ou é privado. Antes
+# esse 403 virava 000 ("sem rede"), e um namespace sem pacote nenhum — o de um
+# fork que ainda não publicou — passava por instalação sem rede, falha aberta.
 ghcr_status() {
-  local img="$1" tag="$2" tok registry owner
+  local img="$1" tag="$2" tok registry owner resp
   registry="${IMG_NS%%/*}"
   owner="${IMG_NS#*/}"
-  tok="$(curl -fsS --max-time 6 \
-          "https://${registry}/token?scope=repository:${owner}/${img}:pull&service=${registry}" 2>/dev/null \
-        | sed -n 's/.*"token":"\([^"]*\)".*/\1/p')" || true
-  if [ -z "$tok" ]; then printf '000'; return 0; fi
+  resp="$(curl -sS --max-time 6 -w '\n%{http_code}' \
+          "https://${registry}/token?scope=repository:${owner}/${img}:pull&service=${registry}" 2>/dev/null)" || true
+  tok="$(printf '%s' "$resp" | sed -n 's/.*"token":"\([^"]*\)".*/\1/p')"
+  if [ -z "$tok" ]; then
+    case "${resp##*$'\n'}" in 401|403) printf '%s' "${resp##*$'\n'}" ;; *) printf '000' ;; esac
+    return 0
+  fi
   curl -s -o /dev/null --max-time 6 -w '%{http_code}' \
     -H "Authorization: Bearer $tok" \
     -H 'Accept: application/vnd.oci.image.index.v1+json,application/vnd.docker.distribution.manifest.list.v2+json,application/vnd.docker.distribution.manifest.v2+json' \
@@ -2617,6 +2624,68 @@ trio_publicado() {
     [ "$(ghcr_status "$i" "$tag")" = "200" ] || return 1
   done
   return 0
+}
+
+# A versão das imagens de uma instalação NOVA em AMD64 (a de ARM64 sai do
+# pré-voo OCI). Mora aqui porque o install.sh e o install-single-server.sh
+# perguntam a mesma coisa: o segundo, antes de subir o Supabase dele, para
+# conferir a MESMA imagem do app que o primeiro vai usar.
+#
+# Cascata, do mais específico ao mais disponível; cada nível pergunta pelas
+# imagens juntas (`trio_publicado`):
+#   <versão publicada>|trio  — o caminho normal
+#   stable|stable            — a versão ainda não tem todas as imagens
+#   <versão publicada>|build — nem ela nem o stable: worker e agendador são
+#                              construídos aqui (o compose tem `build:` ao lado)
+#   latest|latest            — sem rede ou sem tag: falha ABERTA, canal móvel
+# Só decide e ecoa "<versão>|<caminho>"; o que dizer na tela é de quem chama.
+resolver_versao_da_instalacao() {  # <versão da última tag publicada, ou vazio>
+  local v="${1:-}"
+  if [ -n "$v" ] && trio_publicado "$v"; then printf '%s|trio' "$v"
+  elif trio_publicado stable; then printf 'stable|stable'
+  elif [ -n "$v" ]; then printf '%s|build' "$v"
+  else printf 'latest|latest'
+  fi
+}
+
+# A imagem do app que a instalação vai subir existe e é pública? Pergunta pela
+# referência COMPLETA (`ghcr.io/<dono>/<nome>:<tag>` ou `@sha256:…`), com a
+# mesma sonda do `ghcr_status`. Sem isto, num namespace sem pacote (um fork que
+# ainda não publicou), o install.sh criava o projeto Supabase, aplicava o schema
+# e só morria no `up -d`.
+#   404 → recusa: esta versão não foi publicada.
+#   401/403 → a sonda é ANÔNIMA. Quem fez `docker login` alcança um pacote
+#     privado, então antes de recusar pergunta ao Docker desta máquina
+#     (`docker manifest inspect`, com a credencial local); se ele alcança, segue.
+#   000 (sem resposta) → segue: travar por falta de rede trocaria
+#     disponibilidade por previsibilidade.
+# Só o GHCR é consultado: a sonda fala o protocolo de token dele, e um registro
+# que ela não sabe consultar nunca vira recusa. Quem constrói aqui
+# (APP_PULL_POLICY=never, DESKCOMM_BUILD_LOCAL=1) também não depende do registro.
+conferir_imagem_do_app() {  # conferir_imagem_do_app <referência> → 0 segue, 1 recusa
+  local ref="${1:-}" repo tag st
+  [ "${APP_PULL_POLICY:-}" = never ] && return 0
+  build_local_pedido && return 0
+  case "$ref" in ghcr.io/*/*) ;; *) return 0 ;; esac
+  if [ "${ref#*@}" != "$ref" ]; then
+    repo="${ref%@*}"; tag="${ref#*@}"
+    # `nome:tag@sha256:…`: quem vale é o digest, e a tag sai do nome.
+    case "${repo##*/}" in *:*) repo="${repo%:*}" ;; esac
+  else
+    repo="${ref%:*}"; tag="${ref##*:}"
+    case "$tag" in */*|"$ref") repo="$ref"; tag=latest ;; esac
+  fi
+  st="$(IMG_NS="${repo%/*}"; ghcr_status "${repo##*/}" "$tag")"
+  case "$st" in
+    404)
+      printf '%s\n' "$(t "Este repositório ainda não publicou a versão {1} da imagem do app: {2} (HTTP 404)." "$tag" "$ref")" >&2 ;;
+    401|403)
+      com_prazo 30 docker manifest inspect "$ref" >/dev/null 2>&1 && return 0
+      printf '%s\n' "$(t "O registro recusou a imagem do app {1} (HTTP {2}): o pacote não existe, ou é privado e a credencial do Docker desta máquina não o alcança." "$ref" "$st")" >&2 ;;
+    *) return 0 ;;
+  esac
+  printf '%s\n' "$(t "Nenhum projeto Supabase, .env ou schema foi criado.")" >&2
+  return 1
 }
 
 # Instalação nova usa uma única versão numérica nas quatro imagens próprias e

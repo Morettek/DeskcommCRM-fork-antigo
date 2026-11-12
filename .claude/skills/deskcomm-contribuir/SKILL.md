@@ -41,7 +41,7 @@ for g in ${r:+"$r/.agents/skills"} ~/.claude/skills ~/.agents/skills ~/.gemini/c
 done
 if [ -n "$s" ]; then bash "$s"; else
   echo "NÃO MEDIDO — não achei o quem-sou.sh ${r:+no clone $r }nem nas pastas globais dos guias." >&2
-  echo "Instale os guias pelo comando de uma linha do README (https://github.com/melgarafael/DeskcommCRM#readme) e rode de novo." >&2
+  echo "Instale os guias pelo comando de uma linha do README (https://github.com/Morettek/DeskcommCRM#readme) e rode de novo." >&2
   false
 fi
 ```
@@ -93,7 +93,7 @@ bash .agents/skills/deskcomm-contribuir/scripts/armar-hooks.sh
 
 Três guardas, e só isso: `pre-commit` reprova migration nova sem apêndice no `baseline.sql` e sem
 linha `-- manifest: <descrição>` no cabeçalho do `.sql` no mesmo commit, e número (`NNNN`) ou timestamp já usado na **população da
-pergunta** — a main do PRODUTO (o remoto que aponta para `melgarafael/DeskcommCRM`, com qualquer
+pergunta** — a main do PRODUTO (o remoto que aponta para `Morettek/DeskcommCRM`, com qualquer
 nome; num fork, a sua `origin/main` é a main do fork e não vale) mais `refs/heads` e `refs/remotes`.
 O que essa população não cobre são os PRs abertos, e a mensagem do hook diz isso e aponta
 `pnpm checar:colisao-de-migration`, que mede também eles. O `NNNN` sai da posição do nome canônico
@@ -200,17 +200,14 @@ de release é automático e uma seção à mão já quase publicou uma versão p
 `exige_acao` só se o operador precisa fazer algo na VPS (variável nova obrigatória, por exemplo) —
 e aí o instalador precisa perguntar por ela.
 
-O texto do fragmento vira a nota pública da versão: a LP publica o `CHANGELOG.md` em
-[deskcomm.com.br/changelog](https://www.deskcomm.com.br/changelog), nos três idiomas. Escreva
-para quem nunca viu o código.
+O texto do fragmento vira a nota pública da versão: ele vai para o `CHANGELOG.md` e para a
+Release do GitHub, e é o que quem opera uma VPS lê para decidir se atualiza. Este repositório não
+tem página pública de changelog, e o corte termina quando a tag, a Release e as imagens estão
+conferidas (seção "A vitrine" de `docs/doctrine/versionamento.md`). Escreva para quem nunca viu o
+código.
 
 **Mexeu num guia** (`.agents/skills/deskcomm-*`: nome, o que ele faz, como chamar)? Rode
-`pnpm skills:sync` e avise no PR que a página de guias da LP
-([deskcomm.com.br/guias](https://www.deskcomm.com.br/guias), arquivo `conteudo/guias.ts` do
-repositório `deskcomm-site`) precisa acompanhar — senão ela passa a ensinar um guia que não existe.
-
-As duas páginas saem de um PR do `deskcomm-site`; um `404` nesses dois links quer dizer que ele
-ainda não entrou, não que você errou o caminho.
+`pnpm skills:sync` e confira o espelho em `.claude/skills` no mesmo PR.
 
 ## Passo 8 — o PR
 

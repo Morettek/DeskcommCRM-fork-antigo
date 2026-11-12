@@ -35,7 +35,7 @@ Quatro perguntas, uma por vez, antes de qualquer comando:
 | pergunta | por que importa |
 |---|---|
 | **Onde estamos rodando?** — dentro da VPS (por SSH), no computador da pessoa, ou no computador de uma agência que vai instalar na VPS de um cliente | O instalador roda **dentro da VPS**. Fora dela, você só prepara (domínio, Supabase, chaves) e monta o comando que ela vai colar no servidor |
-| **Já tem servidor?** | Sem servidor: o `comecar.sh`, no computador da pessoa, nomeia o plano (2 vCPU / 4 GB, 80 GB, Ubuntu 22.04/24.04, datacenter em São Paulo — o de 1 vCPU / 2 GB **não** dá conta do WhatsApp) e abre o link de parceria. Ele roda de qualquer pasta, sem clone — e este guia pode ter sido aberto fora de um: `curl -fsSL https://raw.githubusercontent.com/melgarafael/DeskcommCRM/main/hostgator-setup-kit/comecar.sh \| bash` (dentro de um clone, `bash hostgator-setup-kit/comecar.sh`) |
+| **Já tem servidor?** | Sem servidor: o `comecar.sh`, no computador da pessoa, nomeia o plano (2 vCPU / 4 GB, 80 GB, Ubuntu 22.04/24.04, datacenter em São Paulo — o de 1 vCPU / 2 GB **não** dá conta do WhatsApp) e abre o link de parceria. Ele roda de qualquer pasta, sem clone — e este guia pode ter sido aberto fora de um: `curl -fsSL https://raw.githubusercontent.com/Morettek/DeskcommCRM/main/hostgator-setup-kit/comecar.sh \| bash` (dentro de um clone, `bash hostgator-setup-kit/comecar.sh`) |
 | **Onde vai ficar o banco: na nuvem da Supabase ou no próprio servidor?** | Decide o instalador e o tamanho do servidor. Régua no passo 3; o modo no próprio servidor (single-server) está em `references/supabase-local.md` |
 | **É para você ou para um cliente?** | Para cliente, leia `references/agencia.md` antes de pedir qualquer chave: o token do Supabase é uma chave mestra da **conta**, e o plano grátis permite **2 projetos por usuário** |
 
@@ -117,7 +117,7 @@ cá. Registradores, passo a passo: `references/dominio-e-dns.md`.
 ### 5. Rodar o instalador — no modo interativo
 
 ```bash
-git clone https://github.com/melgarafael/DeskcommCRM.git deskcommcrm   # se ainda não clonou
+git clone https://github.com/Morettek/DeskcommCRM.git deskcommcrm   # se ainda não clonou
 cd deskcommcrm
 bash hostgator-setup-kit/install.sh
 ```
@@ -132,9 +132,9 @@ Se precisar do modo sem perguntas (`--yes` com `.env` pronto), duas armadilhas m
 - **não copie** as linhas `APP_IMAGE`, `WORKER_IMAGE`, `SCHEDULER_IMAGE` e `*_PULL_POLICY` do
   `.env.hostgator.example` — elas apontam para o canal móvel `stable`, e a instalação deve ficar
   presa a uma versão numerada. Deixe ausentes; o instalador põe a última versão publicada.
-- telemetria não é consentida por automação: se `SENTRY_DSN` estiver ausente, `--yes` grava
-  `SENTRY_DSN=off`. Só deixe `SENTRY_DSN=` vazio quando a pessoa já tiver aceitado explicitamente
-  o Sentry da comunidade; nas reexecuções essa escolha é preservada.
+- a telemetria nasce desligada: se `SENTRY_DSN` estiver ausente, o instalador grava
+  `SENTRY_DSN=off` (vazio também é desligado). Só há envio se a pessoa puser o próprio DSN em
+  `SENTRY_DSN=<dsn>`; nas reexecuções o valor gravado é preservado.
 
 A chave de IA é **opcional** (issue #670, resolvida): dá para instalar sem conta em provedor de IA
 e cadastrar depois em IA › Credenciais — a tela final da instalação lembra quem pulou, com o

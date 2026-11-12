@@ -34,7 +34,7 @@ Este Código de Conduta se aplica a todos os espaços da comunidade (issues, PRs
 
 ## Aplicação
 
-Casos de comportamento abusivo, de assédio ou de outra forma inaceitável podem ser reportados aos mantenedores em **rafael@maudibrasil.com.br**. Todas as reclamações serão analisadas e investigadas de forma rápida e justa, respeitando a privacidade e a segurança de quem reportar.
+Casos de comportamento abusivo, de assédio ou de outra forma inaceitável podem ser reportados aos mantenedores pelo [relato privado do GitHub](https://github.com/Morettek/DeskcommCRM/security/advisories/new), o mesmo canal do [`SECURITY.md`](SECURITY.md), que chega só a eles. Todas as reclamações serão analisadas e investigadas de forma rápida e justa, respeitando a privacidade e a segurança de quem reportar.
 
 ## Atribuição
 

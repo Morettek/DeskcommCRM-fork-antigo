@@ -81,8 +81,9 @@ houve_conflito=0
 #
 # A régua que este hook ensina é "o próximo NNNN livre", e ela media `git branch`
 # — as branches LOCAIS. A população agora é a main do PRODUTO (o remoto que
-# aponta para melgarafael/DeskcommCRM, com qualquer nome) mais `refs/heads` E
-# `refs/remotes` — e o que ela NÃO cobre (os PRs abertos pela lista do `gh`) sai
+# aponta para Morettek/DeskcommCRM, com qualquer nome) mais `refs/heads` E
+# `refs/remotes`, sem as branches de remoto que aponta para o projeto original
+# (`pop_remotos_do_original`) — e o que ela NÃO cobre (os PRs abertos pela lista do `gh`) sai
 # declarado na própria mensagem. Caso medido que CONTINUA fora: o 0269 do PR
 # aberto #965 (de fork) vivia só na cópia `refs/remotes/origin/pr/965`, e as
 # cópias `pr/N` ficam excluídas de propósito (sobrevivem ao fechamento do PR);

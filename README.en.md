@@ -16,10 +16,9 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178c6?logo=typescript)](https://www.typescriptlang.org)
 [![Supabase](https://img.shields.io/badge/Supabase-Postgres%2BAuth%2BStorage-3ecf8e?logo=supabase)](https://supabase.com)
 [![Self-hosted](https://img.shields.io/badge/self--hosted-one%20command-orange)](hostgator-setup-kit/)
-[![CI](https://github.com/melgarafael/DeskcommCRM/actions/workflows/ci.yml/badge.svg)](https://github.com/melgarafael/DeskcommCRM/actions/workflows/ci.yml)
+[![CI](https://github.com/Morettek/DeskcommCRM/actions/workflows/ci.yml/badge.svg)](https://github.com/Morettek/DeskcommCRM/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
-[![Sponsor](https://img.shields.io/badge/Sponsor-%E2%9D%A4-ea4aaa?logo=githubsponsors&logoColor=white)](https://github.com/sponsors/melgarafael)
 <!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
 [![All Contributors](https://img.shields.io/badge/all_contributors-170-orange.svg?style=flat-square)](#contributors-)
 <!-- ALL-CONTRIBUTORS-BADGE:END -->
@@ -45,7 +44,7 @@
 > command for your case:
 >
 > ```bash
-> curl -fsSL https://raw.githubusercontent.com/melgarafael/DeskcommCRM/main/hostgator-setup-kit/comecar.sh | bash
+> curl -fsSL https://raw.githubusercontent.com/Morettek/DeskcommCRM/main/hostgator-setup-kit/comecar.sh | bash
 > ```
 >
 > *(prefer to read before executing? clone the repo and run `bash hostgator-setup-kit/comecar.sh` —
@@ -78,7 +77,7 @@ That is not a freeze: the terminal is hiding your password. Type (or paste) it a
 Once inside the VPS:
 
 ```bash
-git clone https://github.com/melgarafael/DeskcommCRM.git
+git clone https://github.com/Morettek/DeskcommCRM.git
 cd DeskcommCRM
 bash hostgator-setup-kit/install.sh
 ```
@@ -142,7 +141,7 @@ prompt and contribute. To have them in **any folder** — including before cloni
 machine — run once:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/melgarafael/DeskcommCRM/main/scripts/instalar-guias.sh | bash
+curl -fsSL https://raw.githubusercontent.com/Morettek/DeskcommCRM/main/scripts/instalar-guias.sh | bash
 ```
 
 Then open a new session of your assistant and say *"I want to install the CRM on my VPS"*: asking
@@ -154,7 +153,7 @@ The guides do **not** update themselves: running the same command again brings t
 undo:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/melgarafael/DeskcommCRM/main/scripts/instalar-guias.sh | bash -s -- --remover
+curl -fsSL https://raw.githubusercontent.com/Morettek/DeskcommCRM/main/scripts/instalar-guias.sh | bash -s -- --remover
 ```
 
 With the repository already cloned, the guides come inside it (`.agents/skills/`) and none of that
@@ -316,7 +315,7 @@ Every screen has a door in the navigation — CI fails a screen that exists but 
 | **Rate limit** | Upstash Redis (sliding window) | Serverless, free tier is enough |
 | **AI** | Vercel AI SDK v7 — OpenRouter, Requesty, Anthropic, OpenAI and Google | The installer asks which; switch later from the screen |
 | **Validation** | Zod | External input, env, payloads |
-| **Observability** | Sentry (scrubbed in errors, transactions, spans and breadcrumbs) | Opt-in telemetry at install time |
+| **Observability** | Sentry (scrubbed in errors, transactions, spans and breadcrumbs) | Telemetry off by default; only with your own `SENTRY_DSN` |
 | **Hosting** | Any VPS with Docker (HostGator/SP in the partnership) | App + WhatsApp + workers on your own box |
 
 Details: [`ARCHITECTURE.md`](ARCHITECTURE.md).
@@ -329,7 +328,7 @@ Details: [`ARCHITECTURE.md`](ARCHITECTURE.md).
 > This section is for people who will change the code.
 
 ```bash
-git clone https://github.com/melgarafael/DeskcommCRM.git
+git clone https://github.com/Morettek/DeskcommCRM.git
 cd DeskcommCRM
 
 nvm use                     # Node 22
@@ -400,7 +399,7 @@ pnpm test:e2e      # Playwright (requires dev server)
 **These checks are required** to merge into `main`. This list has already said "four" and then "five" — **measure, don't trust it**:
 
 ```bash
-gh api repos/melgarafael/DeskcommCRM/branches/main/protection \
+gh api repos/Morettek/DeskcommCRM/branches/main/protection \
   --jq '.required_status_checks.contexts|join(", ")'
 # on 2026-08-14: verify, build-and-size, invariants, e2e, imagens-ok
 ```
@@ -478,7 +477,7 @@ Two required gates do **not** fit there and only run in CI: `e2e` (needs a local
 
 Thanks to everyone who has contributed code, a well-reported bug, an idea, docs or a translation. To join this list, see [how to contribute](CONTRIBUTING.en.md) ([emoji key](https://allcontributors.org/docs/en/emoji-key)).
 
-Want to support the project another way? [Sponsor it on GitHub Sponsors](https://github.com/sponsors/melgarafael).
+Want to support whoever created the original project? Its author, Rafael Melgaço, takes sponsorship on [GitHub Sponsors](https://github.com/sponsors/melgarafael).
 
 <!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
 <!-- prettier-ignore-start -->
@@ -711,9 +710,9 @@ Want to support the project another way? [Sponsor it on GitHub Sponsors](https:/
 
 ## 🐛 Reporting bugs
 
-Open an [issue](https://github.com/melgarafael/DeskcommCRM/issues/new/choose) — the template asks for what we need (environment, `/api/v1/health`, steps). Running `bash hostgator-setup-kit/healthcheck.sh` and pasting the output helps a lot.
+Open an [issue](https://github.com/Morettek/DeskcommCRM/issues/new/choose) — the template asks for what we need (environment, `/api/v1/health`, steps). Running `bash hostgator-setup-kit/healthcheck.sh` and pasting the output helps a lot.
 
-For **security vulnerabilities**, **do NOT open a public issue** — use [private vulnerability reporting](https://github.com/melgarafael/DeskcommCRM/security/advisories/new). Details in [`SECURITY.md`](SECURITY.md).
+For **security vulnerabilities**, **do NOT open a public issue** — use [private vulnerability reporting](https://github.com/Morettek/DeskcommCRM/security/advisories/new). Details in [`SECURITY.md`](SECURITY.md).
 
 ---
 
@@ -744,10 +743,8 @@ For **security vulnerabilities**, **do NOT open a public issue** — use [privat
 
 ## 💬 Community
 
-- **Discussions:** [GitHub Discussions](https://github.com/melgarafael/DeskcommCRM/discussions)
-- **Issues:** [GitHub Issues](https://github.com/melgarafael/DeskcommCRM/issues)
-- **Instagram:** [@melgarafael](https://www.instagram.com/melgarafael)
-- **YouTube:** [youtube.com/@melgarafael](https://www.youtube.com/@melgarafael)
+- **Issues:** [GitHub Issues](https://github.com/Morettek/DeskcommCRM/issues) — questions, bugs and tasks.
+- **Original project:** [melgarafael/DeskcommCRM](https://github.com/melgarafael/DeskcommCRM), by Rafael Melgaço ([Instagram](https://www.instagram.com/melgarafael) · [YouTube](https://www.youtube.com/@melgarafael)). This repository is a fork that follows its own path; the author's channels are his, not this repository's.
 
 ---
 
@@ -764,7 +761,7 @@ This is a **self-hosted** project: each person runs the CRM on their **own infra
 - **Support is community-based and "as-is".** No SLA — it's open source maintained by goodwill.
 - **You are responsible for your installation.** Updates are not automatic (you click, or run `update.sh`, when you want), and keeping/backing up your server is on you.
 - **Data protection:** whoever **hosts** the instance is the **controller** of the personal data processed there (customers, conversations, orders), with the legal obligations that follow. The project maintainers are **neither** controllers nor processors of your instance, and have no access to your database, your WhatsApp or your storage.
-- **Telemetry (Sentry):** `install.sh` **asks** during installation and respects your answer; in non-interactive mode, with no `SENTRY_DSN` set, telemetry is **off**. If you accept the community Sentry, what gets sent are **error reports** (stack traces) with national IDs, phone numbers and emails replaced, sensitive headers stripped, and webhook/invite tokens redacted from URLs — **no** performance tracing and **no** session replay, both pinned to 0 on that path. To turn it off at any time: `SENTRY_DSN=off` in `.env`. To send to **your** Sentry (there, with performance and replay): `SENTRY_DSN=<your-dsn>`. What is redacted, and why, lives in [`lib/sentry/scrub.ts`](lib/sentry/scrub.ts); DSN resolution in [`lib/sentry/dsn.ts`](lib/sentry/dsn.ts).
+- **Telemetry (Sentry):** **off by default** — with no `SENTRY_DSN` configured, no error report leaves the installation, and `install.sh` writes `SENTRY_DSN=off`. Sending only happens if **you** set `SENTRY_DSN=<your-dsn>` in `.env`, pointing to **your** Sentry (with performance and replay). Even then, what goes out are **error reports** (stack traces) with national IDs, phone numbers and emails replaced, sensitive headers stripped, and webhook/invite tokens redacted from URLs. To turn it off again: `SENTRY_DSN=off` (or empty) in `.env`. What is redacted, and why, lives in [`lib/sentry/scrub.ts`](lib/sentry/scrub.ts); DSN resolution in [`lib/sentry/dsn.ts`](lib/sentry/dsn.ts).
 
 ---
 
@@ -782,5 +779,7 @@ This is a **self-hosted** project: each person runs the CRM on their **own infra
 <div align="center">
 
 **Built with ☕ in Brasil** · **Made for the community**
+
+Original project: [melgarafael/DeskcommCRM](https://github.com/melgarafael/DeskcommCRM), by Rafael Melgaço
 
 </div>

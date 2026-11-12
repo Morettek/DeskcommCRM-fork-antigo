@@ -170,12 +170,29 @@ head_commit="$(git rev-parse HEAD^{commit} 2>/dev/null || true)"
 # de FORA: os PRs entram pela lista de ABERTOS, e essas cópias persistem depois que o PR
 # fecha — no clone do mantenedor, 919 delas, 891 de PR não aberto (medido em 19/09/2026).
 # Seria o curinga refs/pull/* entrando pela porta dos fundos.
+# Remotos que apontam para o projeto ORIGINAL (melgarafael/DeskcommCRM): este fork segue
+# caminho próprio, e um número usado lá não está tomado aqui. A regra é a mesma de
+# `pop_eh_o_original` (scripts/migration-populacao.sh); este script roda sozinho (o teste
+# o copia sem a biblioteca), por isso não a importa — e o colisao-de-migration.test.sh roda
+# as duas contra a mesma tabela de URLs, para que não divirjam.
+eh_o_original() {
+  case "$(printf '%s' "${1:-}" | tr 'A-Z' 'a-z' | sed -E 's#^.*github\.com[:/]+##; s#\.git$##; s#/+$##')" in
+    melgarafael/deskcommcrm | */melgarafael/deskcommcrm) return 0 ;;
+  esac
+  return 1
+}
+remotos_do_original=""
+for r in $(git remote 2>/dev/null); do
+  eh_o_original "$(git config --get "remote.$r.url" 2>/dev/null || true)" && remotos_do_original="$remotos_do_original $r"
+done
 raso=0; [ -f "$(git rev-parse --git-dir)/shallow" ] && raso=1
 filtro_ancestral=(); [ "$raso" = 0 ] && filtro_ancestral=(--no-merged HEAD)
 refs_de_outrem() { # $@ = padrões de ref
   git for-each-ref ${filtro_ancestral[@]+"${filtro_ancestral[@]}"} \
       --format='%(objectname) %(refname)' "$@" 2>/dev/null \
-    | awk -v b="$base_commit" -v h="$head_commit" '
+    | awk -v b="$base_commit" -v h="$head_commit" -v fora="$remotos_do_original" '
+        BEGIN { n = split(fora, f, " "); for (i = 1; i <= n; i++) original["refs/remotes/" f[i] "/"] = 1 }
+        { split($2, p, "/"); if (p[2] == "remotes" && (("refs/remotes/" p[3] "/") in original)) next }
         $2 != "refs/remotes/origin/HEAD" && $2 !~ /^refs\/remotes\/[^\/]+\/pr\/[0-9]+$/ \
           && $1 != b && $1 != h { print $2 }' || true
 }
@@ -229,7 +246,11 @@ case "$url_origin" in
 esac
 repo_prs="$repo_origin"; fonte_cabecas="origin"
 prs_listados=""; prs_n_listados=0; prs_medidos=0; prs_falhos=""; prs_motivo=""; proprios=""
-if [ -n "$repo_origin" ]; then
+# Morettek/DeskcommCRM ainda é fork DE REDE do projeto original no GitHub, mas segue caminho
+# próprio: quando a origin É o produto, o pai de rede não é a população deste PR. O slug é o
+# mesmo de `pop_repo_do_produto` (scripts/migration-populacao.sh) — mudou lá, muda aqui.
+case "$(tr 'A-Z' 'a-z' <<<"$repo_origin")" in morettek/deskcommcrm) repo_origin_eh_o_produto=1 ;; *) repo_origin_eh_o_produto=0 ;; esac
+if [ -n "$repo_origin" ] && [ "$repo_origin_eh_o_produto" = 0 ]; then
   if pai="$(gh repo view "github.com/$repo_origin" --json isFork,parent \
               --jq 'if .isFork then .parent.owner.login + "/" + .parent.name else "" end' 2>"$erro_gh")"; then
     pai="$(grep -E '^[^/[:space:]]+/[^/[:space:]]+$' <<<"$pai" | head -1 || true)"

@@ -134,6 +134,30 @@ if [[ "$plataforma" = linux/arm64 ]]; then
     || die "Imagens do CRM ou WAHA incompletas para $plataforma; nenhuma parte do Supabase foi criada."
   preflight_supabase_da_ref "$SUPABASE_REF" "$plataforma" \
     || die "Imagens do Supabase incompletas para $plataforma; nenhuma parte foi criada."
+else
+  # AMD64: a imagem do app que o install.sh vai usar, conferida ANTES de subir o
+  # Supabase. Sem isto a recusa só vinha no `install.sh --yes` lá embaixo, com o
+  # Supabase local de pé e o .env do CRM gravado.
+  #
+  # A referência e os escapes têm a MESMA precedência do install.sh, e pelo mesmo
+  # mecanismo: o ambiente vale, e o `load_env` do .env e do rascunho só troca a
+  # chave que existe neles. Num subshell, para não vazar o .env inteiro para o
+  # resto deste instalador. Quem constrói aqui (APP_PULL_POLICY=never,
+  # DESKCOMM_BUILD_LOCAL=1) não depende do registro, e nem a versão vai à rede.
+  (
+    cd "$ROOT_DIR" || exit 1
+    if [[ -f .env ]]; then load_env .env; fi
+    if [[ -f "${PARTIAL_FILE:-.env.partial}" ]]; then load_env "${PARTIAL_FILE:-.env.partial}"; fi
+    [[ "${APP_PULL_POLICY:-}" == never ]] && exit 0
+    build_local_pedido && exit 0
+    step "Conferindo a imagem do CRM publicada"
+    imagem="${APP_IMAGE:-}"
+    if [[ -z "$imagem" ]]; then
+      versao="$(resolver_versao_da_instalacao "$(ultima_versao_publicada "${REPO_URL:-}")")"
+      imagem="${IMG_APP}:${versao%|*}"
+    fi
+    conferir_imagem_do_app "$imagem"
+  ) || die "Instalação interrompida antes de subir o Supabase: a imagem do app não está disponível."
 fi
 
 mkdir -p "$RUNTIME_DIR"

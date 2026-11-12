@@ -15,10 +15,12 @@ set -euo pipefail
 # de qualquer 'cd' (step 2 pode entrar num repo clonado à parte).
 KIT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
 
-REPO_URL="${REPO_URL:-https://github.com/melgarafael/DeskcommCRM.git}"
+REPO_URL="${REPO_URL:-https://github.com/Morettek/DeskcommCRM.git}"
 # Uma constante, dois usos (o fim feliz e o fim travado) — e o comecar.sh tem a
-# gêmea. Link repetido à mão vira link divergente na primeira troca.
-COMUNIDADE_URL="https://lp-comunidade.automatiklabs.com.br"
+# gêmea. Link repetido à mão vira link divergente na primeira troca. São as
+# issues deste repositório: a comunidade que este link apontava era a do
+# projeto original.
+SUPORTE_URL="https://github.com/Morettek/DeskcommCRM/issues"
 REPO_DIR="${REPO_DIR:-deskcommcrm}"
 COMPOSE="docker-compose.prod.yml"
 COMPOSE_TRAEFIK="docker-compose.traefik.yml"
@@ -693,6 +695,9 @@ RASCUNHO_NAO_GUARDA=" SUPABASE_ACCESS_TOKEN "
 save_partial() {
   local var="$1" val="${!1-}" tmp="${PARTIAL_FILE}.tmp.$$"
   case "$RASCUNHO_NAO_GUARDA" in *" $var "*) return 0 ;; esac
+  # A imagem do app só entra no rascunho depois de passar na conferência do
+  # registro (ver `APP_IMAGE_CONFERIDA`, depois da tela de conferência).
+  [ "$var" = APP_IMAGE ] && [ -z "${APP_IMAGE_CONFERIDA:-}" ] && return 0
   umask 077
   { [ -f "$PARTIAL_FILE" ] && grep -vE "^${var}=" "$PARTIAL_FILE" || true; } > "$tmp"
   envq "$var" "$val" >> "$tmp"
@@ -1287,35 +1292,6 @@ if [ "${REVERSE_PROXY:-}" = "traefik" ] && [ -z "$traefik_container" ]; then
   fi
 fi
 
-# ── Supabase automático (opcional) ──────────────────────────────────────────
-# Criar o projeto no navegador e copiar 4 campos era o passo mais LENTO da
-# instalação (medido: ~59min de preparação contra ~3min de script) e o mais
-# fácil de errar — copiar a "Direct connection", que é IPv6-only e não conecta
-# de um VPS IPv4, é a armadilha campeã.
-#
-# Com SUPABASE_ACCESS_TOKEN no ambiente e as credenciais ainda vazias, o
-# projeto é criado aqui e as 4 variáveis entram direto no fluxo, sem copiar e
-# colar. Sem o token, nada muda: seguem as perguntas de sempre.
-if [ -z "${NEXT_PUBLIC_SUPABASE_URL:-}" ] && [ -n "${SUPABASE_ACCESS_TOKEN:-}" ]; then
-  step "$(t "Criando o projeto Supabase automaticamente")"
-  _sb_out="$(bash "$KIT_DIR/supabase-provision.sh" "${APP_NAME:-DeskcommCRM}" "${SUPABASE_REGION:-sa-east-1}")" \
-    || die "$(t "Não consegui criar o projeto Supabase. Crie no painel e rode de novo sem SUPABASE_ACCESS_TOKEN.")"
-  # O script imprime `CHAVE='valor'` em stdout (o visual dele vai para stderr).
-  # A leitura é por parse, não por `eval` — o porquê está em
-  # sb_carrega_credenciais(), e `test-validators.sh` cobra isso.
-  sb_carrega_credenciais "$_sb_out"
-  unset _sb_out
-
-  # Credencial que não chegou tem que parar AQUI. Sem esta checagem o install
-  # seguiria com a variável vazia e morreria lá na frente, longe da causa — e a
-  # pessoa veria "erro de conexão" em vez de "o provisionamento não devolveu X".
-  if [ -z "${NEXT_PUBLIC_SUPABASE_URL:-}" ] || [ -z "${NEXT_PUBLIC_SUPABASE_ANON_KEY:-}" ] \
-     || [ -z "${SUPABASE_SERVICE_ROLE_KEY:-}" ] || [ -z "${SUPABASE_DB_URL:-}" ]; then
-    die "$(t "O provisionamento não devolveu as 4 credenciais. Crie o projeto no painel e rode de novo sem SUPABASE_ACCESS_TOKEN.")"
-  fi
-  c_grn "$(t "✓ Supabase pronto — as 4 credenciais entraram sozinhas")"
-fi
-
 # Cada linha: VARIÁVEL|pergunta|padrão|validador|secret|opcional
 # A ordem importa: a URL do projeto vem antes das chaves porque os validadores
 # das chaves batem contra ela (chave de outro projeto é erro comum e mudo).
@@ -1415,8 +1391,6 @@ fi
 #
 # Resolvido no REMOTO porque o clone é `--depth 1` e não traz tag nenhuma.
 # Em ARM64 a versão já foi resolvida e conferida pelo pré-voo, lá em cima.
-[ "$PLATAFORMA_HOST" = linux/arm64 ] || VERSAO_ALVO="$(ultima_versao_publicada "$REPO_URL")"
-
 # A tag do git é condição NECESSÁRIA, não suficiente: ela nasce minutos antes
 # das imagens, e `deskcomm-worker`/`deskcomm-scheduler` só passaram a existir
 # depois das releases que já estão publicadas — `deskcomm-worker:1.2.1` nunca
@@ -1424,35 +1398,106 @@ fi
 # cliente receberia duas referências impossíveis e o kit as construiria aqui em
 # silêncio, do topo da main: app de uma release + worker de outro código.
 #
-# Cascata, do mais específico ao mais disponível. Cada nível pergunta pelas TRÊS
+# Cascata, do mais específico ao mais disponível, em `resolver_versao_da_instalacao`
+# (_common.sh): o install-single-server.sh pergunta a MESMA coisa antes de subir
+# o Supabase dele, e a regra mora num lugar só. Cada nível pergunta pelas TRÊS
 # imagens juntas, porque instalar com elas desalinhadas é o defeito, não a
 # solução.
-if [ "$PLATAFORMA_HOST" = linux/arm64 ]; then
-  : # pré-voo OCI já passou
-elif [ -n "$VERSAO_ALVO" ] && trio_publicado "$VERSAO_ALVO"; then
-  : # o caminho normal: as três publicadas na última versão
-elif trio_publicado "stable"; then
-  c_ylw "$(t "⚠ A versão {1} ainda não tem as três imagens publicadas." "${VERSAO_ALVO:-$(t "mais recente")}")"
-  c_ylw "$(t "  Instalando pelo canal 'stable' (a última versão completa).")"
-  VERSAO_ALVO="stable"
-elif [ -n "$VERSAO_ALVO" ]; then
-  # Nem a versão nem o `stable` têm o trio. Segue assim mesmo — o compose tem
-  # `build:` ao lado do `image:` do worker e do scheduler, então eles são
-  # construídos aqui. É lento, mas instala. O que NÃO pode é isso acontecer
-  # calado: o dono precisa saber que duas peças dele saíram do fonte local.
-  c_ylw "$(t "⚠ As imagens do worker e do agendador ainda não estão publicadas.")"
-  c_ylw "$(t "  Elas serão construídas neste servidor — leva alguns minutos a mais.")"
-  c_ylw "$(t "  Rode 'bash hostgator-setup-kit/update.sh' quando a próxima versão sair.")"
-else
-  # Falha ABERTA: sem rede ou sem tag no remoto, segue como antes. Travar a
-  # instalação por não resolver um número seria trocar previsibilidade por
-  # disponibilidade — mas o aviso sai, porque o dono precisa saber que ficou
-  # num canal móvel em vez de numa versão.
-  VERSAO_ALVO="latest"
-  c_ylw "$(t "⚠ Não consegui descobrir a última versão publicada (rede?).")"
-  c_ylw "$(t "  Instalando pelo canal 'latest'. Depois rode: bash hostgator-setup-kit/update.sh")"
+CAMINHO_DA_VERSAO="trio"   # ARM64: o pré-voo OCI já passou
+if [ "$PLATAFORMA_HOST" != linux/arm64 ]; then
+  VERSAO_PUBLICADA="$(ultima_versao_publicada "$REPO_URL")"
+  _versao="$(resolver_versao_da_instalacao "$VERSAO_PUBLICADA")"
+  VERSAO_ALVO="${_versao%|*}"; CAMINHO_DA_VERSAO="${_versao#*|}"
+  unset _versao
 fi
 IMAGEM_APP_DEFAULT="${IMG_APP}:${VERSAO_ALVO}"
+
+# ── A imagem do app existe? ANTES de criar projeto Supabase, .env ou schema ──
+# Num namespace sem pacote (um fork que ainda não publicou, ou pacote privado)
+# a instalação criava o projeto Supabase, aplicava o schema e só morria no
+# `up -d`. A conferência mora em `conferir_imagem_do_app` (_common.sh), com a
+# mesma sonda de registro do `trio_publicado`, e vem ANTES dos avisos da
+# cascata: sem a imagem do app, quem instala vê só a recusa, e não "as imagens
+# serão construídas aqui" seguido de "não instalei". Projeto, .env e schema
+# ainda não existem, então a saída é a do pré-voo ARM64 acima: sem o painel de
+# recuperação, que sugeriria desfazer o que não existe.
+IMAGEM_CONFERIDA="${APP_IMAGE:-$IMAGEM_APP_DEFAULT}"
+# A dica de onde corrigir segue a ORIGEM da referência recusada, na ordem em que
+# ela venceu: o rascunho é carregado depois do .env, e o .env depois do ambiente.
+# Sem APP_IMAGE, a referência é a versão publicada, e não há linha a corrigir.
+origem_da_app_image() {
+  [ -n "${APP_IMAGE:-}" ] || return 0
+  if [ -f "$PARTIAL_FILE" ] && grep -qE '^APP_IMAGE=.' "$PARTIAL_FILE"; then printf rascunho
+  elif [ -f .env ] && grep -qE '^APP_IMAGE=.' .env; then printf dotenv
+  else printf ambiente
+  fi
+}
+recusar_imagem_do_app() {  # recusar_imagem_do_app <rascunho|dotenv|ambiente|digitada|vazio>
+  c_red "✖ $(t "Não instalei: a imagem do app não está disponível. Confira a referência acima; para construir as imagens aqui DE PROPÓSITO: {1}" "DESKCOMM_BUILD_LOCAL=1 bash hostgator-setup-kit/install.sh --yes")"
+  case "${1:-}" in
+    dotenv)   c_red "  $(t "A referência é a APP_IMAGE do .env: corrija-a, ou apague a linha APP_IMAGE= para usar a versão publicada, e rode de novo.")" ;;
+    rascunho) c_red "  $(t "A referência veio do rascunho {1}: apague a linha APP_IMAGE= dele para usar a versão publicada, e rode de novo." "$PARTIAL_FILE")" ;;
+    ambiente) c_red "  $(t "A referência é a variável de ambiente APP_IMAGE desta sessão: corrija-a ou remova-a, e rode de novo.")" ;;
+    digitada) c_red "  $(t "A referência foi digitada na tela de conferência: rode de novo e escolha outra, ou deixe o campo vazio para usar a versão publicada.")" ;;
+  esac
+  trap - EXIT
+  exit 1
+}
+conferir_imagem_do_app "$IMAGEM_CONFERIDA" || recusar_imagem_do_app "$(origem_da_app_image)"
+
+case "$CAMINHO_DA_VERSAO" in
+  stable)
+    c_ylw "$(t "⚠ A versão {1} ainda não tem as três imagens publicadas." "${VERSAO_PUBLICADA:-$(t "mais recente")}")"
+    c_ylw "$(t "  Instalando pelo canal 'stable' (a última versão completa).")"
+    ;;
+  build)
+    # Nem a versão nem o `stable` têm o trio. Segue assim mesmo — o compose tem
+    # `build:` ao lado do `image:` do worker e do scheduler, então eles são
+    # construídos aqui. É lento, mas instala. O que NÃO pode é isso acontecer
+    # calado: o dono precisa saber que duas peças dele saíram do fonte local.
+    c_ylw "$(t "⚠ As imagens do worker e do agendador ainda não estão publicadas.")"
+    c_ylw "$(t "  Elas serão construídas neste servidor — leva alguns minutos a mais.")"
+    c_ylw "$(t "  Rode 'bash hostgator-setup-kit/update.sh' quando a próxima versão sair.")"
+    ;;
+  latest)
+    # Falha ABERTA: sem rede ou sem tag no remoto, segue como antes. Travar a
+    # instalação por não resolver um número seria trocar previsibilidade por
+    # disponibilidade — mas o aviso sai, porque o dono precisa saber que ficou
+    # num canal móvel em vez de numa versão.
+    c_ylw "$(t "⚠ Não consegui descobrir a última versão publicada (rede?).")"
+    c_ylw "$(t "  Instalando pelo canal 'latest'. Depois rode: bash hostgator-setup-kit/update.sh")"
+    ;;
+esac
+
+# ── Supabase automático (opcional) ──────────────────────────────────────────
+# Criar o projeto no navegador e copiar 4 campos era o passo mais LENTO da
+# instalação (medido: ~59min de preparação contra ~3min de script) e o mais
+# fácil de errar — copiar a "Direct connection", que é IPv6-only e não conecta
+# de um VPS IPv4, é a armadilha campeã.
+#
+# Com SUPABASE_ACCESS_TOKEN no ambiente e as credenciais ainda vazias, o
+# projeto é criado aqui e as 4 variáveis entram direto no fluxo, sem copiar e
+# colar. Sem o token, nada muda: seguem as perguntas de sempre.
+if [ -z "${NEXT_PUBLIC_SUPABASE_URL:-}" ] && [ -n "${SUPABASE_ACCESS_TOKEN:-}" ]; then
+  step "$(t "Criando o projeto Supabase automaticamente")"
+  _sb_out="$(bash "$KIT_DIR/supabase-provision.sh" "${APP_NAME:-DeskcommCRM}" "${SUPABASE_REGION:-sa-east-1}")" \
+    || die "$(t "Não consegui criar o projeto Supabase. Crie no painel e rode de novo sem SUPABASE_ACCESS_TOKEN.")"
+  # O script imprime `CHAVE='valor'` em stdout (o visual dele vai para stderr).
+  # A leitura é por parse, não por `eval` — o porquê está em
+  # sb_carrega_credenciais(), e `test-validators.sh` cobra isso.
+  sb_carrega_credenciais "$_sb_out"
+  unset _sb_out
+
+  # Credencial que não chegou tem que parar AQUI. Sem esta checagem o install
+  # seguiria com a variável vazia e morreria lá na frente, longe da causa — e a
+  # pessoa veria "erro de conexão" em vez de "o provisionamento não devolveu X".
+  if [ -z "${NEXT_PUBLIC_SUPABASE_URL:-}" ] || [ -z "${NEXT_PUBLIC_SUPABASE_ANON_KEY:-}" ] \
+     || [ -z "${SUPABASE_SERVICE_ROLE_KEY:-}" ] || [ -z "${SUPABASE_DB_URL:-}" ]; then
+    die "$(t "O provisionamento não devolveu as 4 credenciais. Crie o projeto no painel e rode de novo sem SUPABASE_ACCESS_TOKEN.")"
+  fi
+  c_grn "$(t "✓ Supabase pronto — as 4 credenciais entraram sozinhas")"
+fi
+
 
 FIELDS=(
   "DOMAIN|Domínio do CRM (ex: crm.suaempresa.com.br)||v_domain||"
@@ -1556,6 +1601,17 @@ else
   done
 fi
 
+# APP_IMAGE trocada na tela de conferência: a referência nova também é
+# conferida antes de segredo, .env ou schema.
+if [ "${APP_IMAGE:-}" != "$IMAGEM_CONFERIDA" ]; then
+  conferir_imagem_do_app "${APP_IMAGE:-}" || recusar_imagem_do_app digitada
+fi
+# Só agora a APP_IMAGE vai para o rascunho (`save_partial` a segura até aqui):
+# gravada antes, uma referência recusada voltaria na rodada seguinte e seria
+# recusada ANTES da tela de conferência, sem saída pelo instalador.
+APP_IMAGE_CONFERIDA=1
+[ -z "${APP_IMAGE:-}" ] || save_partial APP_IMAGE
+
 # Derivados
 NEXT_PUBLIC_APP_URL="https://${DOMAIN}"
 NEXT_PUBLIC_ADMIN_URL="https://${DOMAIN}"
@@ -1640,33 +1696,15 @@ fi
 # 'traefik', então a variável está pronta para o .env logo abaixo.
 garantir_rede_do_proxy
 
-# ── Telemetria: perguntar, não presumir ─────────────────────────────────────
-# Issue #100. Antes, quem não definisse SENTRY_DSN mandava relatório de erro pro
-# Sentry da comunidade sem ter decidido nada — e só ficava sabendo na mensagem
-# final, DEPOIS de instalado. Num produto que roda na infraestrutura do usuário,
-# com dados de clientes dele, o consentimento vem antes.
-# Quem já tem valor no .env manda: a pergunta não sobrescreve escolha anterior.
+# ── Telemetria: desligada até o operador escolher um destino ────────────────
+# Issue #100 pôs aqui uma pergunta de consentimento para o Sentry da comunidade
+# do projeto original. Este fork não tem Sentry de comunidade (lib/sentry/dsn.ts):
+# sem SENTRY_DSN nada sai desta instalação, então não há o que perguntar — e um
+# "sim" que não envia nada seria promessa falsa na primeira tela.
+# Quem já tem valor no .env manda: a primeira execução não sobrescreve escolha
+# anterior. Quem quer os erros no PRÓPRIO Sentry põe SENTRY_DSN=<seu-dsn> no .env.
 if [ -z "${SENTRY_DSN+x}" ]; then
-  if [ "$NONINTERACTIVE" = 1 ]; then
-    # Automação não consente por ninguém. Sem valor explícito, fica desligado.
-    SENTRY_DSN="off"
-  else
-    step "$(t "Telemetria de erros (opcional)")"
-    printf '%s\n' "$(t "Podemos receber os relatórios de ERRO desta instalação (stack trace) para")"
-    printf '%s\n' "$(t "corrigir bugs que afetam todo mundo. CPF, telefone e e-mail são substituídos,")"
-    printf '%s\n' "$(t "cabeçalhos sensíveis removidos e tokens de webhook/convite redigidos da URL.")"
-    printf '%s\n' "$(t "NÃO enviamos rastreamento de performance nem replay de sessão.")"
-    printf '%s\n' "$(t "Seus dados de clientes, conversas e banco NUNCA saem daqui.")"
-    printf '\n%s\n' "$(t "Você pode mudar depois no .env, a qualquer momento.")"
-    read -r -p "$(t "  Enviar relatórios de erro anonimizados? (s/N) ")" _tel
-    if resposta_sim "${_tel:-}"; then
-      SENTRY_DSN=""
-      c_grn "$(t "✓ Telemetria de erros ligada — obrigado, isso ajuda o projeto.")"
-    else
-      SENTRY_DSN="off"
-      c_grn "$(t "✓ Telemetria desligada — nada será enviado.")"
-    fi
-  fi
+  SENTRY_DSN="off"
 fi
 
 step "$(t "Escrevendo .env")"
@@ -1942,11 +1980,9 @@ esac
   printf '# rota responde 404. Para ligar: openssl rand -hex 32, cole aqui e entregue\n'
   printf '# só ao sistema que vai criar empresas (depois: docker compose up -d app).\n'
   envq TENANT_PROVISIONING_SECRET "${TENANT_PROVISIONING_SECRET:-}"
-  printf '# Telemetria de erros (você escolheu isto durante a instalação).\n'
-  printf '#   "off"  = não envia nada.\n'
-  printf '#   vazio  = só ERRO pro Sentry da comunidade, com CPF/telefone/e-mail\n'
-  printf '#            substituídos e token de URL redigido. Sem trace, sem replay.\n'
-  printf '#   <dsn>  = manda pro SEU Sentry (aí com performance e replay).\n'
+  printf '# Telemetria de erros. DESLIGADA por padrão: nada é enviado a ninguém.\n'
+  printf '#   "off" ou vazio = não envia nada.\n'
+  printf '#   <dsn>          = manda os erros pro SEU Sentry (com performance e replay).\n'
   envq SENTRY_DSN "${SENTRY_DSN:-}"
   envq INTERNAL_SECRET "$INTERNAL_SECRET"
   envq INTERNAL_CRON_SECRET "$INTERNAL_CRON_SECRET"
@@ -2632,9 +2668,9 @@ $(c_ylw "═══════════════════════�
   $(t "Quando der 307, rode de novo o mesmo comando de instalação: ele confere")
   $(t "o que falta e termina, sem apagar nada.")
 
-  $(t "Travou? Leve o log para a comunidade — tem gente que já passou por isso:")
+  $(t "Travou? Abra uma issue com o log (sem senhas nem chaves):")
 
-       ${COMUNIDADE_URL}
+       ${SUPORTE_URL}
 
 SEM_CADEADO
     trap apaga_temporarios EXIT
@@ -2663,9 +2699,9 @@ $(c_ylw "═══════════════════════�
 
        docker compose $(dc_files) up -d
 
-  $(t "Travou? Leve o log para a comunidade — tem gente que já passou por isso:")
+  $(t "Travou? Abra uma issue com o log (sem senhas nem chaves):")
 
-       ${COMUNIDADE_URL}
+       ${SUPORTE_URL}
 
 INCOMPLETO
   # Sai != 0 para que automação (e o --yes) saiba que não terminou saudável,
@@ -2679,12 +2715,16 @@ fi
 # .env do exemplo saindo com a telemetria ligada sem ninguém escolher). O texto
 # passa a refletir a escolha feita, em vez de afirmar um padrão.
 telemetria_no_banner() {
+  # Os mesmos valores que lib/sentry/dsn.ts lê como desligado: vazio, off (em
+  # qualquer caixa), false e 0. Não há Sentry de comunidade.
+  local SENTRY_DSN="${SENTRY_DSN:-}"
+  case "$SENTRY_DSN" in "" | [Oo][Ff][Ff] | false | 0) SENTRY_DSN=off ;; esac
   if [ "${SENTRY_DSN:-}" = "off" ]; then
     printf '%s\n' "$(t "  Telemetria: DESLIGADA — nenhum relatório de erro sai desta instalação.")"
-    printf '%s\n' "$(t "  Para ligar, apague a linha SENTRY_DSN do .env e rode: {1}" "docker compose $(dc_files) up -d")"
+    printf '%s\n' "$(t "  Para mandar os erros ao SEU Sentry, ponha SENTRY_DSN=<seu-dsn> no .env e rode: {1}" "docker compose $(dc_files) up -d")"
   else
-    printf '%s\n' "$(t "  Telemetria: LIGADA — só relatórios de erro anonimizados vão ao Sentry do")"
-    printf '%s\n' "$(t "  projeto. Para desligar, ponha SENTRY_DSN='off' no .env e rode: {1}" "docker compose $(dc_files) up -d")"
+    printf '%s\n' "$(t "  Telemetria: LIGADA — os relatórios de erro vão ao Sentry de SENTRY_DSN.")"
+    printf '%s\n' "$(t "  Para desligar, ponha SENTRY_DSN='off' no .env e rode: {1}" "docker compose $(dc_files) up -d")"
   fi
 }
 
@@ -2713,12 +2753,11 @@ $(pendencia_da_ia)
        $(t "Configurações → Segurança (guarde os códigos de recuperação).")
        $(t "Perdeu o celular?") bash hostgator-setup-kit/reset-mfa.sh ${OWNER_EMAIL}
 
-$(c_grn "  ─── $(t "A comunidade") ──────────────────────────────────────")
+$(c_grn "  ─── $(t "Dúvidas e problemas") ──────────────────────────────────")
 
-  $(t "É onde saem os avisos de versão nova, os agentes que outras pessoas já")
-  $(t "configuraram e a resposta de quem roda exatamente este CRM:")
+  $(t "Abra uma issue no repositório, com o que apareceu na tela:")
 
-       ${COMUNIDADE_URL}
+       ${SUPORTE_URL}
 
 $(telemetria_no_banner)
 

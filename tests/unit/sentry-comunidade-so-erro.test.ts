@@ -33,6 +33,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 import {
+  DSN_DA_COMUNIDADE_ORIGINAL,
   INTEGRACAO_DE_SESSAO,
   INTEGRACAO_DE_TRACING,
   integracoesDoCliente,
@@ -213,8 +214,9 @@ describe("o init do cliente honra a política", () => {
  *
  * Mesma família do e2e que escrevia no banco de produção: o default é a coisa
  * mais perigosa quando o default é "manda para o nosso servidor de verdade".
- * `resolveSentryDsn("")` cai no DSN da comunidade — então a AUSÊNCIA da chave no
- * ambiente da suíte é o que mandava dado de teste para lá.
+ * Até novembro de 2026 `resolveSentryDsn("")` caía no DSN da comunidade — e a
+ * AUSÊNCIA da chave no ambiente da suíte mandava dado de teste para lá. Hoje o
+ * vazio desliga; a suíte segue escrevendo `off` explícito, que não depende disso.
  */
 describe("o ambiente da suíte desliga a telemetria", () => {
   it("o gerador do .env.e2e escreve SENTRY_DSN=off", () => {
@@ -224,16 +226,54 @@ describe("o ambiente da suíte desliga a telemetria", () => {
     );
     expect(
       /^SENTRY_DSN=off$/m.test(gerador),
-      "o ambiente da suíte voltou a ficar sem SENTRY_DSN. Sem a chave, " +
-        "`resolveSentryDsn` cai no DSN da comunidade e a suíte passa a MANDAR DADO " +
-        "para o Sentry de produção do projeto — e a cor do CI volta a depender do " +
-        "estado de cobrança de um terceiro.",
+      "o ambiente da suíte voltou a ficar sem SENTRY_DSN. A suíte não pode depender " +
+        "do padrão de `resolveSentryDsn` para não MANDAR DADO a um Sentry de " +
+        "produção — se o padrão mudar, a cor do CI volta a depender do estado de " +
+        "cobrança de um terceiro.",
     ).toBe(true);
   });
 
   it("e `off` de fato desliga — a guarda acima não vale nada se o valor não desligasse", () => {
     expect(resolveSentryDsn("off")).toBeUndefined();
-    // Controle: o vazio NÃO desliga, e é por isso que a linha acima é obrigatória.
-    expect(isCommunityDsn(resolveSentryDsn(""))).toBe(true);
+    expect(resolveSentryDsn("OFF")).toBeUndefined();
+    // `false` em qualquer caixa também: "False" passava como DSN e o SDK tentava
+    // usá-lo. O banner do install.sh lê os mesmos valores como desligado.
+    for (const v of ["false", "False", "FALSE", "0", " Off "]) {
+      expect(resolveSentryDsn(v), v).toBeUndefined();
+    }
+  });
+
+  it("os quatro pontos de entrada passam `dsn: sentryDsn ?? \"\"`, nunca `undefined`", () => {
+    // Com `dsn: undefined` o SDK lê SENTRY_DSN do ambiente sozinho — e "off" ali
+    // não é DSN. As quatro chamadas de Sentry.init, uma por processo.
+    const entradas = [
+      "sentry.server.config.ts",
+      "sentry.edge.config.ts",
+      "instrumentation-client.ts",
+      "workers/agent-worker/main.ts",
+    ];
+    for (const arquivo of entradas) {
+      const fonte = readFileSync(path.join(process.cwd(), arquivo), "utf8");
+      expect(fonte, `${arquivo} não chama Sentry.init`).toContain("Sentry.init(");
+      expect(fonte, arquivo).toContain('dsn: sentryDsn ?? "",');
+    }
+  });
+
+  it("o PADRÃO é desligado: sem DSN configurado, nada sai da instalação", () => {
+    // Até novembro de 2026 o vazio caía no Sentry do projeto original. Este fork
+    // não tem Sentry de comunidade: quem não escolheu destino não envia nada.
+    expect(resolveSentryDsn("")).toBeUndefined();
+    expect(resolveSentryDsn("   ")).toBeUndefined();
+    expect(resolveSentryDsn(undefined)).toBeUndefined();
+    expect(resolveSentryDsn(null)).toBeUndefined();
+    // Controle: um DSN do operador passa intacto, e não é tratado como comunidade.
+    const dsnDoOperador = "https://abc123@o0.ingest.sentry.io/42";
+    expect(resolveSentryDsn(` ${dsnDoOperador} `)).toBe(dsnDoOperador);
+    expect(isCommunityDsn(resolveSentryDsn(dsnDoOperador))).toBe(false);
+    // Controle positivo: a política só-erro continua reconhecendo o DSN do
+    // projeto original, quando alguém o escreve à mão — senão o `false` acima
+    // passaria com um `isCommunityDsn` que nunca diz sim.
+    expect(isCommunityDsn(DSN_DA_COMUNIDADE_ORIGINAL)).toBe(true);
+    expect(isCommunityDsn(resolveSentryDsn(DSN_DA_COMUNIDADE_ORIGINAL))).toBe(true);
   });
 });

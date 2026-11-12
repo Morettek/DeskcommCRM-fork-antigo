@@ -2065,11 +2065,24 @@ STUBOCI
   #
   # `DUBLE_GHCR` permite ao teste escolher o cenário: vazio/`200` = as três
   # imagens publicadas; `403` = pacote privado; `404` = não existe.
+  # `DUBLE_GHCR_APP` responde só pela imagem do APP (padrão: o mesmo de
+  # `DUBLE_GHCR`): o install.sh recusa cedo quando é ELA que falta
+  # (`conferir_imagem_do_app`), e segue construindo quando faltam as outras.
   cat > "$raiz/bin/curl" <<'STUBCURL'
 #!/usr/bin/env bash
 case "$*" in
   *releases/latest*) printf '{"tag_name":"%s"}' "${DUBLE_RELEASE_TAG:-v1.66.1}" ;;
-  *ghcr.io/token*) printf '{"token":"dublê"}' ;;
+  # `DUBLE_GHCR_TOKEN=403`: o GHCR recusa já no TOKEN (pacote inexistente ou
+  # privado). O corpo vem com o código no fim, como o `-w` do `ghcr_status` pede.
+  *ghcr.io/token*)
+    if [ -n "${DUBLE_GHCR_TOKEN:-}" ]; then printf '{"errors":[{"code":"DENIED"}]}\n%s' "$DUBLE_GHCR_TOKEN"
+    else printf '{"token":"dublê"}'; fi ;;
+  # Um registro que não é o GHCR responde 401 no caminho de token do GHCR: se a
+  # conferência o consultasse, recusaria uma imagem que ela não sabe medir.
+  *registry.example.com/token*) printf '{"errors":[]}\n401' ;;
+  # A tag `nao-existe` não existe em nenhum namespace (a troca na tela de conferência).
+  *"/manifests/nao-existe"*) printf 404 ;;
+  *ghcr.io/v2/*/deskcommcrm/manifests/*) printf '%s' "${DUBLE_GHCR_APP:-${DUBLE_GHCR:-200}}" ;;
   *ghcr.io/v2/*)   printf '%s' "${DUBLE_GHCR:-200}" ;;
   # O v_supabase_url exige o GoTrue: o JSON de /auth/v1/verify sem parâmetros.
   *auth/v1/verify*) printf '{"msg":"Verify requires a verification type"}\n400' ;;
@@ -2156,8 +2169,9 @@ chegou_na_deteccao() {
 # As RESPOSTAS do modo interativo, na ordem em que o instalador pergunta: o
 # proxy (o que se testa aqui), depois os 7 campos que o BASE_ENV deixa vazios de
 # propósito (APP_IMAGE, OPENAI_API_KEY, APP_NAME, APP_ACCENT_HEX, SUPPORT_EMAIL,
-# RESEND_API_KEY, RESEND_FROM_EMAIL — todos com Enter), a tela de conferência,
-# a telemetria e o aviso de DNS ('c' = seguir assim mesmo).
+# RESEND_API_KEY, RESEND_FROM_EMAIL — todos com Enter), a tela de conferência
+# e o aviso de DNS ('c' = seguir assim mesmo). A pergunta de telemetria saiu do
+# install.sh (não há Sentry de comunidade), e o Enter dela saiu da fila.
 # As respostas que vêm DEPOIS da do proxy reverso, na ordem em que o install.sh
 # as consome. É uma fila posicional: pergunta nova no meio do script desloca
 # tudo daqui para baixo, e o sintoma NÃO aponta para cá — o cenário simplesmente
@@ -2172,9 +2186,10 @@ chegou_na_deteccao() {
 # Contagem de Enters antes do 'c', medida com
 #   eval "$(grep -m1 '^RESTO_DAS_PERGUNTAS=' test-validators.sh)"
 #   printf '%s' "${RESTO_DAS_PERGUNTAS%%c*}" | grep -c ''
-# → era 9 antes de APP_ACCENT_HEX entrar em FIELDS, 10 depois dela, e é 11
-#   desde que APP_LOCALE (o idioma da instalação) entrou logo após APP_NAME.
-RESTO_DAS_PERGUNTAS=$'\n\n\n\n\n\n\n\n\n\n\n\nc\n'
+# → era 9 antes de APP_ACCENT_HEX entrar em FIELDS, 10 depois dela, 11 desde
+#   que APP_LOCALE (o idioma da instalação) entrou logo após APP_NAME, chegou a
+#   12 e voltou a 11 quando a pergunta de telemetria saiu.
+RESTO_DAS_PERGUNTAS=$'\n\n\n\n\n\n\n\n\n\n\nc\n'
 
 # A posição da cor DENTRO da fila acima — SUPABASE_ACCESS_TOKEN + 1 provedor +
 # APP_IMAGE + OPENAI + APP_NAME + APP_LOCALE e ela é a 7ª. Fica numa variável porque a fila com a cor RESPONDIDA
@@ -2520,8 +2535,11 @@ exit 0
 STUB
   export REPO_URL="$origem"
   export DUBLE_GHCR=403          # pacote existe mas está PRIVADO
+  # …o do worker, do agendador e da voz. O do APP responde: sem ele a instalação
+  # recusa antes de criar qualquer coisa — é o caso logo abaixo deste.
+  export DUBLE_GHCR_APP=200
   saida="$(rodar install.sh --yes)"
-  unset DUBLE_GHCR REPO_URL
+  unset DUBLE_GHCR DUBLE_GHCR_APP REPO_URL
 
   if ! grep -q "construídas neste servidor" <<<"$saida"; then
     printf '  ✗ com as imagens inalcançáveis, o instalador não avisou que ia construir aqui\n'
@@ -2537,6 +2555,169 @@ STUB
   printf '  ✓ e mesmo assim conclui a instalação (constrói é lento, não é impedimento)\n'
 ) || fail=1
 rm -rf "$TMP_PRIV"
+
+echo "packaging: sem a imagem do APP no registro, recusa ANTES de criar qualquer coisa"
+# Medido no fork que ainda não publicou: o kit aponta para um namespace sem pacote,
+# e o install.sh criava o projeto Supabase, aplicava o schema e só morria no
+# `up -d`. A recusa agora vem antes de projeto, segredo, .env e schema.
+#
+# O remoto é um FIXTURE local com a tag v1.0.0, como o fork que herdou as tags
+# do original e não publicou imagem para elas: a versão resolve para 1.0.0, a
+# cascata cai no ramo "construir aqui" — e quem instala tem de ver só a recusa,
+# não "as imagens serão construídas" seguido de "não instalei".
+#
+# imagem_do_app_caso <descrição> <recusa|segue> <linha extra do .env> [VAR=valor…]
+#   As VAR=valor vão para o ambiente do install.sh (dublês do registro e do Docker).
+#   `MARCA_DO_PROVISION=nao|sim` confere a marca do supabase-provision.sh dublê.
+imagem_do_app_caso() {
+  local desc="$1" espera="$2" extra="$3" raiz
+  shift 3
+  raiz="$(mktemp -d)"
+  (
+    for kv in "$@"; do export "${kv?}"; done
+    montar_vps "$raiz" "crmimg" <<'STUB'
+#!/usr/bin/env bash
+printf '%s\n' "$*" >> "$DOCKER_LOG"
+case "$1" in
+  compose) case "$*" in *" exec "*) printf 'healthy\n{"data":{"status":"healthy"}}\n' ;; esac; exit 0 ;;
+  # `docker manifest inspect` usa a credencial local: só alcança com `docker login`.
+  manifest) [ -n "${DUBLE_DOCKER_LOGIN:-}" ] && exit 0; exit 1 ;;
+esac
+exit 0
+STUB
+    # O projeto Supabase criado AUTOMATICAMENTE é o primeiro efeito caro do
+    # install.sh. O dublê deixa uma marca: depois de uma recusa, ela não existe.
+    cat > "$raiz/supabase-provision.sh" <<'PROV'
+#!/usr/bin/env bash
+: > "$(dirname "$0")/marca-do-provision"
+printf "NEXT_PUBLIC_SUPABASE_URL='https://abcdefghijklmnop.supabase.co'\n"
+printf "NEXT_PUBLIC_SUPABASE_ANON_KEY='x'\nSUPABASE_SERVICE_ROLE_KEY='y'\n"
+printf "SUPABASE_DB_URL='postgresql://postgres.abcdefghijklmnop:s@aws-1-sa-east-1.pooler.supabase.com:5432/postgres'\n"
+PROV
+    mkdir -p "$VPS_PROJ/supabase"; : > "$VPS_PROJ/supabase/baseline.sql"
+    git init --quiet --bare "$raiz/origem.git"
+    (
+      cd "$raiz" || exit 1
+      git clone --quiet "$raiz/origem.git" w 2>/dev/null
+      cd w || exit 1
+      echo x > a; git add -A; git -c user.email=t@t -c user.name=t commit --quiet -m init
+      git tag v1.0.0; git push --quiet origin HEAD --tags 2>/dev/null
+    )
+    export REPO_URL="$raiz/origem.git"
+    saida="$(rodar install.sh --yes "$extra")"
+    case "${MARCA_DO_PROVISION:-}" in
+      nao) if [ -e "$raiz/marca-do-provision" ]; then
+             printf '  ✗ %s — o projeto Supabase foi criado antes da recusa\n' "$desc"; exit 1
+           fi ;;
+      sim) if [ ! -e "$raiz/marca-do-provision" ]; then
+             printf '  ✗ %s — o dublê do provisionamento não rodou: o caso não mede o que diz\n' "$desc"; exit 1
+           fi
+           printf '  ✓ %s\n' "$desc"; exit 0 ;;
+    esac
+    if [ "$espera" = recusa ]; then
+      if ! grep -qE "ghcr\.io/[a-z0-9-]+/deskcommcrm:[^ ]+ \(HTTP ${STATUS_ESPERADO:-[0-9]+}\)" <<<"$saida"; then
+        printf '  ✗ %s — a recusa não nomeou a referência completa da imagem do app com o HTTP %s\n' "$desc" "${STATUS_ESPERADO:-}"
+        printf '     saída: %s\n' "$(printf '%s' "$saida" | grep -v '^$' | tail -3 | tr '\n' ' ')"
+        exit 1
+      fi
+      # A frase é fiel: antes da conferência o instalador pode ter instalado o
+      # Docker e clonado o repositório, mas não criou projeto, .env nem schema.
+      if ! grep -qF "Nenhum projeto Supabase, .env ou schema foi criado." <<<"$saida"; then
+        printf '  ✗ %s — a recusa não disse o que (não) foi criado\n' "$desc"; exit 1
+      fi
+      # Sem a imagem do app, quem instala vê só a recusa — não "as imagens
+      # serão construídas aqui" seguido de "não instalei".
+      if grep -q "serão construídas neste servidor" <<<"$saida"; then
+        printf '  ✗ %s — avisou que ia construir as imagens e depois recusou\n' "$desc"; exit 1
+      fi
+      # Nada foi criado: o .env continua o do cenário (sem segredo gerado) e o
+      # schema não foi aplicado.
+      if grep -q '^INTERNAL_SECRET=' "$VPS_PROJ/.env" || grep -q 'Aplicando o schema' <<<"$saida"; then
+        printf '  ✗ %s — recusou DEPOIS de escrever o .env ou aplicar o schema\n' "$desc"; exit 1
+      fi
+    elif ! grep -qE '^OWNER_PASSWORD="' "$VPS_PROJ/.env"; then
+      printf '  ✗ %s — não chegou a escrever o .env inteiro\n' "$desc"
+      printf '     última linha da saída: %s\n' "$(printf '%s' "$saida" | grep -v '^$' | tail -1)"
+      exit 1
+    fi
+    printf '  ✓ %s\n' "$desc"
+  ) || fail=1
+  rm -rf "$raiz"
+}
+imagem_do_app_caso "imagem do app inexistente (404): recusa antes de .env e schema, sem prometer construir" \
+  recusa "" DUBLE_GHCR_APP=404 STATUS_ESPERADO=404
+imagem_do_app_caso "imagem do app privada (403 no manifesto): recusa antes de .env e schema" \
+  recusa "" DUBLE_GHCR_APP=403 STATUS_ESPERADO=403
+imagem_do_app_caso "o GHCR recusa já no TOKEN (403): recusa com HTTP 403, não lê como 'sem rede'" \
+  recusa "" DUBLE_GHCR_TOKEN=403 STATUS_ESPERADO=403
+imagem_do_app_caso "imagem do app publicada (200): segue e escreve o .env" segue ""
+imagem_do_app_caso "APP_PULL_POLICY=never (construída aqui): não consulta o registro e segue" \
+  segue "APP_PULL_POLICY='never'" DUBLE_GHCR_APP=404
+imagem_do_app_caso "imagem privada com 'docker login' nesta máquina: a credencial local alcança, e segue" \
+  segue "" DUBLE_GHCR_APP=403 DUBLE_DOCKER_LOGIN=1
+imagem_do_app_caso "registro que não é o GHCR: não é consultado, e não vira recusa" \
+  segue "APP_IMAGE='registry.example.com/eu/deskcommcrm:1.0.0'" DUBLE_GHCR_APP=404
+# O projeto Supabase AUTOMÁTICO (token no .env, URL vazia) é o efeito mais caro que
+# vem antes do .env. O caso de controle prova que o dublê está ligado: com a
+# imagem publicada, a marca existe.
+SUPABASE_AUTO="SUPABASE_ACCESS_TOKEN='sbp_teste'
+NEXT_PUBLIC_SUPABASE_URL=''"
+imagem_do_app_caso "com o projeto Supabase automático, a recusa vem ANTES de criá-lo" \
+  recusa "$SUPABASE_AUTO" DUBLE_GHCR_APP=404 MARCA_DO_PROVISION=nao
+imagem_do_app_caso "controle: com a imagem publicada, o projeto automático é criado (o dublê está ligado)" \
+  segue "$SUPABASE_AUTO" MARCA_DO_PROVISION=sim
+
+echo "packaging: APP_IMAGE trocada na tela de conferência é conferida, e a recusada não volta do rascunho"
+# A tela de conferência deixa trocar a APP_IMAGE. A referência nova é conferida
+# antes de segredo, .env e schema; e, recusada, NÃO pode ir para o .env.partial:
+# na rodada seguinte ela seria recusada ANTES da tela, sem saída pelo instalador.
+TMP_TROCA="$(mktemp -d)"
+(
+  montar_vps "$TMP_TROCA" "crmtroca" <<'STUB'
+#!/usr/bin/env bash
+printf '%s\n' "$*" >> "$DOCKER_LOG"
+case "$1" in
+  compose) case "$*" in *" exec "*) printf 'healthy\n{"data":{"status":"healthy"}}\n' ;; esac; exit 0 ;;
+  manifest) exit 1 ;;
+esac
+exit 0
+STUB
+  mkdir -p "$VPS_PROJ/supabase"; : > "$VPS_PROJ/supabase/baseline.sql"
+  export REPO_URL="$TMP_TROCA/nao-existe.git"
+  ruim="ghcr.io/exemplo/deskcommcrm:nao-existe"
+  # A fila de sempre até a tela de conferência; lá, item 3 (APP_IMAGE), a
+  # referência que não existe, e Enter para continuar.
+  fila="${RESTO_DAS_PERGUNTAS%%c*}"
+  fila="${fila%$'\n'}3"$'\n'"$ruim"$'\n\nc\n'
+  saida="$(rodar install.sh "" "" "$fila")"
+  if ! grep -qF "$ruim (HTTP 404)" <<<"$saida"; then
+    printf '  ✗ a APP_IMAGE trocada na tela de conferência não foi conferida\n'
+    printf '     saída: %s\n' "$(printf '%s' "$saida" | grep -v '^$' | tail -3 | tr '\n' ' ')"
+    exit 1
+  fi
+  printf '  ✓ a APP_IMAGE trocada na tela de conferência é conferida e recusada (HTTP 404)\n'
+  # A dica de onde corrigir segue a origem: a referência foi DIGITADA e não há
+  # linha APP_IMAGE no .env, então mandar apagá-la de lá seria mandar procurar
+  # o que não existe.
+  if grep -qF "A referência é a APP_IMAGE do .env" <<<"$saida"; then
+    printf '  ✗ a recusa mandou corrigir o .env, mas a referência foi digitada na tela\n'; exit 1
+  fi
+  if ! grep -qF "A referência foi digitada na tela de conferência" <<<"$saida"; then
+    printf '  ✗ a recusa não disse que a referência foi digitada na tela\n'; exit 1
+  fi
+  printf '  ✓ e a dica diz que ela foi digitada na tela, não manda corrigir o .env\n'
+  if grep -q '^APP_IMAGE=' "$VPS_PROJ/.env.partial" 2>/dev/null; then
+    printf '  ✗ a referência recusada foi para o rascunho: %s\n' "$(grep '^APP_IMAGE=' "$VPS_PROJ/.env.partial")"; exit 1
+  fi
+  saida="$(rodar install.sh --yes)"
+  if ! grep -qE '^OWNER_PASSWORD="' "$VPS_PROJ/.env"; then
+    printf '  ✗ a rodada seguinte não instalou (a referência recusada voltou?)\n'
+    printf '     saída: %s\n' "$(printf '%s' "$saida" | grep -v '^$' | tail -3 | tr '\n' ' ')"
+    exit 1
+  fi
+  printf '  ✓ e a rodada seguinte não a traz de volta do rascunho\n'
+) || fail=1
+rm -rf "$TMP_TROCA"
 
 echo "integração: os TRÊS provedores de IA que o instalador oferece"
 # A pergunta "qual IA vai atender" tem três respostas, e até aqui só uma delas
@@ -2810,7 +2991,7 @@ STUB
   }
   telemetria_ok "template copiado (sem escolha): o --yes grava off, não consente por ninguém" \
     "$SENTRY_DO_TEMPLATE" '"off"'
-  telemetria_ok "quem ACEITOU (chave declarada e vazia) continua aceitando na reexecução" \
+  telemetria_ok "chave declarada e vazia (desligado, como off) é preservada na reexecução" \
     "SENTRY_DSN=''" '""'
   telemetria_ok "DSN próprio sobrevive à reexecução" \
     "SENTRY_DSN='https://abc123@o0.ingest.sentry.io/42'" '"https://abc123@o0.ingest.sentry.io/42"'

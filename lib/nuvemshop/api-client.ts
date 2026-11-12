@@ -6,7 +6,7 @@
  * non-2xx responses with structured info for the caller.
  */
 
-import { APP_USER_AGENT, NUVEMSHOP_API_BASE, type NuvemshopEvent } from "./config";
+import { appUserAgent, NUVEMSHOP_API_BASE, type NuvemshopEvent } from "./config";
 
 export class NuvemshopApiError extends Error {
   status: number;
@@ -65,7 +65,7 @@ export class NuvemshopApiClient {
   private headers(extra?: HeadersInit): HeadersInit {
     return {
       Authentication: `bearer ${this.accessToken}`,
-      "User-Agent": APP_USER_AGENT,
+      "User-Agent": appUserAgent(),
       "Content-Type": "application/json",
       Accept: "application/json",
       ...(extra ?? {}),

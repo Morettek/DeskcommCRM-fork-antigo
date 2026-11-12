@@ -10,6 +10,8 @@ import {
   donoConfiavelDoRunner,
   donoDo,
   NAMESPACE_DESTE_REPO,
+  REPOSITORIO_DESTE_REPO,
+  REPOSITORIO_ORIGINAL,
 } from "./_identidade-deste-repo";
 
 /**
@@ -127,7 +129,7 @@ const RECADO_AO_FORK =
   "Publicando as próprias imagens? Troque o namespace em três lugares, e só neles: " +
   "IMG_NS em hostgator-setup-kit/_common.sh, o default das três linhas `image:` de " +
   "docker-compose.prod.yml, e as três *_IMAGE de .env.hostgator.example. Depois " +
-  "atualize NAMESPACE_DESTE_REPO neste arquivo, e a URL do repositório em " +
+  "atualize NAMESPACE_DESTE_REPO e REPOSITORIO_DESTE_REPO em _identidade-deste-repo.ts, e a URL do repositório em " +
   "install.sh, comecar.sh, _common.sh e nos três Dockerfiles (os casos abaixo " +
   "prendem os seis). Todo o resto deriva de IMG_NS. Se você está lendo isto no CI " +
   "do seu próprio fork, houve engano nosso: lá este caso não cobra nada.";
@@ -237,13 +239,21 @@ describe("o kit aponta para o que o CI realmente publica", () => {
     // SÓ aquele literal faria a âncora se calar contra o upstream. Derivando, o
     // mesmo commit fica vermelho AQUI, contra seis arquivos que ele não tocou.
     // Medido nos dois sentidos, com a URL fixa e com ela derivada (ver cabeçalho).
-    const repo = `https://github.com/${DONO_DESTE_REPO}/DeskcommCRM`;
+    //
+    // Desde que o login do dono tem caixa (`Morettek`) e o GHCR exige minúsculas,
+    // a URL sai de REPOSITORIO_DESTE_REPO — e é o dono DELE que fica amarrado ao
+    // do namespace, sem caixa. Trocar só o namespace continua reprovando aqui.
+    expect(
+      REPOSITORIO_DESTE_REPO.split("/")[0]!.toLowerCase(),
+      "NAMESPACE_DESTE_REPO e REPOSITORIO_DESTE_REPO precisam ter o mesmo dono",
+    ).toBe(DONO_DESTE_REPO.toLowerCase());
+    const repo = `https://github.com/${REPOSITORIO_DESTE_REPO}`;
     for (const script of ["install.sh", "comecar.sh"]) {
       const texto = fs.readFileSync(path.join(RAIZ, "hostgator-setup-kit", script), "utf8");
       expect(texto).toContain(`REPO_URL="\${REPO_URL:-${repo}.git}"`);
     }
     expect(COMUM).toContain(`local url="\${1:-${repo}.git}" ref`);
-    for (const dockerfile of ["Dockerfile", "Dockerfile.worker", "Dockerfile.scheduler"]) {
+    for (const dockerfile of ["Dockerfile", "Dockerfile.worker", "Dockerfile.scheduler", "Dockerfile.voice-agent"]) {
       expect(fs.readFileSync(path.join(RAIZ, dockerfile), "utf8")).toContain(
         `org.opencontainers.image.source="${repo}"`,
       );
@@ -315,6 +325,46 @@ describe("o kit aponta para o que o CI realmente publica", () => {
     const naMatriz = [...PUBLICA.matchAll(/^\s{10}- name: (\S+)$/gm)].map((m) => m[1]);
     expect(naMatriz.length, "a matriz de publish-image.yml veio vazia — o leitor cegou").toBeGreaterThanOrEqual(3);
     expect([...naMatriz].sort()).toEqual([...reposDoKit()].sort());
+  });
+});
+
+/**
+ * Os guias embutidos (`.agents/skills`, espelhados em `.claude/skills`) são o que a
+ * pessoa — ou o assistente dela — segue ao pé da letra. Um `git clone`, `curl` ou
+ * `wget` apontando para o repositório ORIGINAL instala o produto de outro dono,
+ * com o kit de outro dono, e nenhum outro gate olha para dentro dos guias.
+ */
+describe("os guias não mandam clonar nem baixar do repositório original", () => {
+  const COMANDO = /\b(?:git clone|curl|wget)\b/;
+
+  function comandosDosGuias(): { onde: string; linha: string }[] {
+    const raiz = path.join(RAIZ, ".agents/skills");
+    const achados: { onde: string; linha: string }[] = [];
+    for (const rel of fs.readdirSync(raiz, { recursive: true }) as string[]) {
+      const arquivo = path.join(raiz, rel);
+      if (!fs.statSync(arquivo).isFile()) continue;
+      fs.readFileSync(arquivo, "utf8")
+        .split("\n")
+        .forEach((linha, i) => {
+          if (COMANDO.test(linha)) achados.push({ onde: `${rel}:${i + 1}`, linha });
+        });
+    }
+    return achados;
+  }
+
+  it("a varredura acha os comandos que apontam para este repositório (controle)", () => {
+    // Sem isto, um caminho errado ou um guia renomeado deixaria a lista vazia — e
+    // lista vazia lê como "nenhum guia aponta para o original".
+    const deste = comandosDosGuias().filter((c) => c.linha.includes(REPOSITORIO_DESTE_REPO));
+    expect(deste.length).toBeGreaterThan(0);
+  });
+
+  it("nenhum comando de clone ou download aponta para o original", () => {
+    const original = REPOSITORIO_ORIGINAL.toLowerCase();
+    const reincidentes = comandosDosGuias()
+      .filter((c) => c.linha.toLowerCase().includes(original))
+      .map((c) => c.onde);
+    expect(reincidentes, `troque por ${REPOSITORIO_DESTE_REPO}`).toEqual([]);
   });
 });
 

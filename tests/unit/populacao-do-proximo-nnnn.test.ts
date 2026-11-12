@@ -4,7 +4,7 @@
  *
  * A pergunta é sempre a mesma: **"algum lugar já USA ou RESERVOU este número?"**
  * — e a resposta honesta é sobre a main do PRODUTO (o remoto que aponta para
- * `melgarafael/DeskcommCRM`, com qualquer nome) mais os PRs ABERTOS, inclusive
+ * `Morettek/DeskcommCRM`, com qualquer nome) mais os PRs ABERTOS, inclusive
  * de fork. Oito lugares respondiam sobre recortes menores, e a revisão mediu
  * cada um: a main de um fork em vez da do produto, só branches locais sem os
  * PRs abertos, cabeças já buscadas de PRs FECHADOS, o DISCO em vez da main
@@ -44,9 +44,9 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 const RAIZ = path.resolve(__dirname, "../..");
 const BIBLIOTECA = path.join(RAIZ, "scripts/migration-populacao.sh");
 /** A URL que a biblioteca reconhece como o repositório PRINCIPAL. */
-const URL_PRODUTO = "https://github.com/melgarafael/DeskcommCRM.git";
+const URL_PRODUTO = "https://github.com/Morettek/DeskcommCRM.git";
 /** O repositório do produto, como o `gh` o nomeia (`--repo`). */
-const REPO_PRODUTO = "melgarafael/DeskcommCRM";
+const REPO_PRODUTO = "Morettek/DeskcommCRM";
 
 /**
  * Onde a biblioteca mora e quem a consome — cada consumidor é um dos oito
@@ -318,7 +318,7 @@ describe("a main medida é a do PRODUTO, com qualquer nome de remoto", () => {
       encoding: "utf8",
     }).trim();
     expect(getUrl, "o insteadOf parou de valer: o caso não mede o que diz medir").toContain(
-      "melgarafael/DeskcommCRM",
+      "Morettek/DeskcommCRM",
     );
     // O remoto do PRODUTO é reconhecido, e não se confunde com o `fork` (cuja
     // URL crua é a do webtecnica, mesmo com o insteadOf apontando para cá).
@@ -360,6 +360,26 @@ describe("a população inclui as branches REMOTAS, e deixa de fora as cópias d
     expect(
       bashComBiblioteca(clone, 'pop_refs_de_outrem "" | grep -c "origin/pr/965" || true').stdout.trim(),
     ).toBe("0");
+  });
+
+  it("a branch de um remoto que aponta para o projeto ORIGINAL não entra: é de outro produto", () => {
+    // Este fork segue caminho próprio: um número usado no original não está
+    // tomado aqui. O controle é a MESMA branch sob um remoto qualquer, que entra.
+    const principal = repoComMigration("0324");
+    const clone = clonar(principal);
+    git(clone, "checkout", "-q", "-b", "do-original");
+    escrever(clone, "supabase/migrations/20260902000000_0499_do_original.sql", "select 1;\n");
+    commitar(clone, "original");
+    git(clone, "checkout", "-q", "main");
+    git(clone, "remote", "add", "original", "https://github.com/melgarafael/DeskcommCRM.git");
+    git(clone, "update-ref", "refs/remotes/original/do-original", "refs/heads/do-original");
+    git(clone, "update-ref", "refs/remotes/origin/do-original", "refs/heads/do-original");
+    // A exclusão é de REMOTO: a branch LOCAL `original/minha` é desta máquina e conta.
+    git(clone, "update-ref", "refs/heads/original/minha", "refs/heads/do-original");
+    const refs = bashComBiblioteca(clone, 'pop_refs_de_outrem ""').stdout;
+    expect(refs, "controle: sob outro remoto a mesma branch entra").toContain("refs/remotes/origin/do-original");
+    expect(refs).not.toContain("refs/remotes/original/");
+    expect(refs, "branch local com nome de remoto do original segue na conta").toContain("refs/heads/original/minha");
   });
 
   it("a cópia em refs/remotes/*/pr/N NÃO entra: ela sobrevive ao fechamento do PR", () => {
@@ -479,7 +499,7 @@ describe("o que fica de fora é declarado, com o comando que cobre", () => {
   it("sem a main do produto, o aviso diz isso em vez de calar", () => {
     const r = bashComBiblioteca(RAIZ, "pop_aviso_populacao");
     expect(r.stdout).toContain("NÃO MEDIDO");
-    expect(r.stdout).toContain("melgarafael/DeskcommCRM");
+    expect(r.stdout).toContain("Morettek/DeskcommCRM");
   });
 
   it("o script de CI (#1269) segue sendo quem mede os PRs abertos, e declara o limite dele", () => {

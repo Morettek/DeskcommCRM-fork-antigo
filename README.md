@@ -16,10 +16,9 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178c6?logo=typescript)](https://www.typescriptlang.org)
 [![Supabase](https://img.shields.io/badge/Supabase-Postgres%2BAuth%2BStorage-3ecf8e?logo=supabase)](https://supabase.com)
 [![Self-hosted](https://img.shields.io/badge/self--hosted-1%20comando-orange)](hostgator-setup-kit/)
-[![CI](https://github.com/melgarafael/DeskcommCRM/actions/workflows/ci.yml/badge.svg)](https://github.com/melgarafael/DeskcommCRM/actions/workflows/ci.yml)
+[![CI](https://github.com/Morettek/DeskcommCRM/actions/workflows/ci.yml/badge.svg)](https://github.com/Morettek/DeskcommCRM/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
-[![Sponsor](https://img.shields.io/badge/Sponsor-%E2%9D%A4-ea4aaa?logo=githubsponsors&logoColor=white)](https://github.com/sponsors/melgarafael)
 <!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
 [![All Contributors](https://img.shields.io/badge/all_contributors-170-orange.svg?style=flat-square)](#contributors-)
 <!-- ALL-CONTRIBUTORS-BADGE:END -->
@@ -45,7 +44,7 @@
 > comando certo pro seu caso:
 >
 > ```bash
-> curl -fsSL https://raw.githubusercontent.com/melgarafael/DeskcommCRM/main/hostgator-setup-kit/comecar.sh | bash
+> curl -fsSL https://raw.githubusercontent.com/Morettek/DeskcommCRM/main/hostgator-setup-kit/comecar.sh | bash
 > ```
 >
 > *(prefere ler antes de executar? clone o repo e rode `bash hostgator-setup-kit/comecar.sh` —
@@ -78,7 +77,7 @@ travamento: é o terminal escondendo a senha. Digite (ou cole) e dê Enter.
 Já dentro da VPS:
 
 ```bash
-git clone https://github.com/melgarafael/DeskcommCRM.git
+git clone https://github.com/Morettek/DeskcommCRM.git
 cd DeskcommCRM
 bash hostgator-setup-kit/install.sh
 ```
@@ -149,7 +148,7 @@ do agente e contribuir. Para tê-los em **qualquer pasta** — inclusive antes d
 computador —, rode uma vez:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/melgarafael/DeskcommCRM/main/scripts/instalar-guias.sh | bash
+curl -fsSL https://raw.githubusercontent.com/Morettek/DeskcommCRM/main/scripts/instalar-guias.sh | bash
 ```
 
 Depois abra uma sessão nova do seu assistente e diga *"quero instalar o CRM na minha VPS"*: pedir o
@@ -161,7 +160,7 @@ Os guias **não** se atualizam sozinhos: rodar o mesmo comando de novo traz a ve
 desfazer:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/melgarafael/DeskcommCRM/main/scripts/instalar-guias.sh | bash -s -- --remover
+curl -fsSL https://raw.githubusercontent.com/Morettek/DeskcommCRM/main/scripts/instalar-guias.sh | bash -s -- --remover
 ```
 
 Com o repositório já clonado, os guias vêm dentro dele (`.agents/skills/`) e nem isso é preciso. Se
@@ -325,7 +324,7 @@ Toda tela tem porta na navegação — o CI reprova tela que existe mas em que s
 | **Rate limit** | Upstash Redis (sliding window) | Serverless, free tier suficiente |
 | **AI** | Vercel AI SDK v7 — OpenRouter, Requesty, Anthropic, OpenAI e Google | Instalador pergunta qual; troca depois pela tela |
 | **Validação** | Zod | Input externo, env, payloads |
-| **Observability** | Sentry (scrub em erro, transação, span e breadcrumb) | Telemetria opt-in no install |
+| **Observability** | Sentry (scrub em erro, transação, span e breadcrumb) | Telemetria desligada por padrão; só com o seu `SENTRY_DSN` |
 | **Hospedagem** | VPS com Docker (HostGator/SP na parceria) | App + WhatsApp + workers na sua máquina |
 
 Detalhes: [`ARCHITECTURE.md`](ARCHITECTURE.md).
@@ -338,7 +337,7 @@ Detalhes: [`ARCHITECTURE.md`](ARCHITECTURE.md).
 > Esta seção é pra quem vai mexer no código.
 
 ```bash
-git clone https://github.com/melgarafael/DeskcommCRM.git
+git clone https://github.com/Morettek/DeskcommCRM.git
 cd DeskcommCRM
 
 nvm use                     # Node 22
@@ -409,7 +408,7 @@ pnpm test:e2e      # Playwright (requer dev server)
 **Estes checks são obrigatórios** pra mergear na `main`. A lista abaixo já disse "quatro" e depois "cinco" — **meça, não confie nela**:
 
 ```bash
-gh api repos/melgarafael/DeskcommCRM/branches/main/protection \
+gh api repos/Morettek/DeskcommCRM/branches/main/protection \
   --jq '.required_status_checks.contexts|join(", ")'
 # em 2026-08-14: verify, build-and-size, invariants, e2e, imagens-ok
 ```
@@ -493,7 +492,7 @@ o `imagens-ok` (constrói as três imagens Docker). Verde na sua máquina não �
 
 Obrigado a cada pessoa que já contribuiu, com código, bug bem relatado, ideia, documentação ou tradução. Para entrar nesta lista, veja [como contribuir](CONTRIBUTING.md) ([legenda dos ícones](https://allcontributors.org/docs/en/emoji-key)).
 
-Quer apoiar o projeto de outro jeito? [Patrocine no GitHub Sponsors](https://github.com/sponsors/melgarafael).
+Quer apoiar quem criou o projeto original? O autor, Rafael Melgaço, recebe patrocínio pelo [GitHub Sponsors](https://github.com/sponsors/melgarafael).
 
 <!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
 <!-- prettier-ignore-start -->
@@ -726,9 +725,9 @@ Quer apoiar o projeto de outro jeito? [Patrocine no GitHub Sponsors](https://git
 
 ## 🐛 Reportando bugs
 
-Abra uma [issue](https://github.com/melgarafael/DeskcommCRM/issues/new/choose) — o template pede o que precisamos (ambiente, `/api/v1/health`, steps). Rodar `bash hostgator-setup-kit/healthcheck.sh` e colar a saída ajuda muito.
+Abra uma [issue](https://github.com/Morettek/DeskcommCRM/issues/new/choose) — o template pede o que precisamos (ambiente, `/api/v1/health`, steps). Rodar `bash hostgator-setup-kit/healthcheck.sh` e colar a saída ajuda muito.
 
-Pra **vulnerabilidades de segurança**, **NÃO abra issue pública** — use o [relato privado de vulnerabilidades](https://github.com/melgarafael/DeskcommCRM/security/advisories/new). Detalhes em [`SECURITY.md`](SECURITY.md).
+Pra **vulnerabilidades de segurança**, **NÃO abra issue pública** — use o [relato privado de vulnerabilidades](https://github.com/Morettek/DeskcommCRM/security/advisories/new). Detalhes em [`SECURITY.md`](SECURITY.md).
 
 ---
 
@@ -759,10 +758,8 @@ Pra **vulnerabilidades de segurança**, **NÃO abra issue pública** — use o [
 
 ## 💬 Comunidade
 
-- **Discussões:** [GitHub Discussions](https://github.com/melgarafael/DeskcommCRM/discussions) — pra perguntas, ideias, showcase.
-- **Issues:** [GitHub Issues](https://github.com/melgarafael/DeskcommCRM/issues) — bugs e tasks.
-- **Instagram:** [@melgarafael](https://www.instagram.com/melgarafael)
-- **YouTube:** [youtube.com/@melgarafael](https://www.youtube.com/@melgarafael)
+- **Issues:** [GitHub Issues](https://github.com/Morettek/DeskcommCRM/issues) — dúvidas, bugs e tasks.
+- **Projeto original:** [melgarafael/DeskcommCRM](https://github.com/melgarafael/DeskcommCRM), de Rafael Melgaço ([Instagram](https://www.instagram.com/melgarafael) · [YouTube](https://www.youtube.com/@melgarafael)). Este repositório é um fork que segue caminho próprio; os canais do autor são dele, não deste repositório.
 
 ---
 
@@ -780,27 +777,24 @@ Este é um projeto **self-host**: cada pessoa roda o CRM na **própria infraestr
 (VPS, banco Supabase e chave de IA próprios). Isso implica:
 
 - **Suporte é comunitário e "as-is".** Dúvidas e bugs entram como
-  [Issues](https://github.com/melgarafael/DeskcommCRM/issues) ou
-  [Discussions](https://github.com/melgarafael/DeskcommCRM/discussions). Não há SLA nem
+  [Issues](https://github.com/Morettek/DeskcommCRM/issues). Não há SLA nem
   suporte garantido — é open source mantido por boa vontade.
 - **Você é responsável pela sua instalação.** Atualizações não são automáticas (você clica
   ou roda `update.sh` quando quiser), e manter/backup do seu servidor é com você.
 - **LGPD — atenção:** quem **hospeda** a instância é o **controlador** dos dados pessoais
   ali tratados (clientes, conversas, pedidos), com as obrigações legais decorrentes. Os
   mantenedores do projeto **não são** controladores nem operadores da sua instância, e não
-  têm acesso ao seu banco, ao seu WhatsApp nem ao seu storage. A única coisa que pode sair
-  da sua máquina para nós é o relatório de erro descrito abaixo — e só se você deixar.
-- **Telemetria (Sentry):** o `install.sh` **pergunta** durante a instalação e respeita a
-  sua resposta; em modo não-interativo, sem `SENTRY_DSN` definido, a telemetria fica
-  **desligada**. Se você aceitar o Sentry da comunidade, o que é enviado são **relatórios
-  de erro** (stack trace) com CPF, telefone e e-mail substituídos, cabeçalhos sensíveis
-  removidos, e token de webhook/convite redigido da URL — **sem** rastreamento de
-  performance e **sem** replay de sessão contínuo, que ficam em 0 nesse caminho. Vai
-  junto do erro a gravação dos instantes que o antecederam, com texto e mídia mascarados,
-  as mesmas URLs redigidas e nenhuma gravação nas páginas com credencial na URL
-  ([`lib/sentry/replay.ts`](lib/sentry/replay.ts)). Para desligar a
-  qualquer momento: `SENTRY_DSN=off` no `.env`. Para mandar ao **seu** Sentry (aí sim com
-  performance e replay): `SENTRY_DSN=<seu-dsn>`. O que é redigido, e por quê, está em
+  têm acesso ao seu banco, ao seu WhatsApp nem ao seu storage. Nada sai da sua máquina
+  para nós.
+- **Telemetria (Sentry):** **desligada por padrão** — sem `SENTRY_DSN` configurado, nenhum
+  relatório de erro sai da instalação, e o `install.sh` grava `SENTRY_DSN=off`. O envio só
+  acontece se **você** configurar `SENTRY_DSN=<seu-dsn>` no `.env`, apontando para o **seu**
+  Sentry (com performance e replay). Mesmo aí, vão relatórios de erro (stack trace) com CPF,
+  telefone e e-mail substituídos, cabeçalhos sensíveis removidos e token de webhook/convite
+  redigido da URL; a gravação que acompanha o erro tem texto e mídia mascarados, as mesmas
+  URLs redigidas e nenhuma gravação nas páginas com credencial na URL
+  ([`lib/sentry/replay.ts`](lib/sentry/replay.ts)). Para desligar de novo: `SENTRY_DSN=off`
+  (ou vazio) no `.env`. O que é redigido, e por quê, está em
   [`lib/sentry/scrub.ts`](lib/sentry/scrub.ts); a resolução do DSN em
   [`lib/sentry/dsn.ts`](lib/sentry/dsn.ts).
 
@@ -821,6 +815,6 @@ Este é um projeto **self-host**: cada pessoa roda o CRM na **própria infraestr
 
 **Built with ☕ in Brasil** · **Made for the community**
 
-Siga o desenvolvimento: [Instagram](https://www.instagram.com/melgarafael) · [YouTube](https://www.youtube.com/@melgarafael)
+Projeto original: [melgarafael/DeskcommCRM](https://github.com/melgarafael/DeskcommCRM), de Rafael Melgaço
 
 </div>

@@ -11,7 +11,7 @@
 
 import { createHmac, timingSafeEqual } from "node:crypto";
 import {
-  APP_USER_AGENT,
+  appUserAgent,
   NUVEMSHOP_AUTH_BASE,
   type NuvemshopConfig,
 } from "./config";
@@ -69,7 +69,7 @@ export async function exchangeCodeForToken(
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "User-Agent": APP_USER_AGENT,
+        "User-Agent": appUserAgent(),
       },
       body,
       // OAuth token endpoints must never be cached.

@@ -85,7 +85,7 @@ pop_main_do_produto() {
     # exato — `*/x` exige a barra — e isso devolvia vazio num clone cujo remoto
     # do produto estava certinho.
     case "$slug" in
-      melgarafael/deskcommcrm | */melgarafael/deskcommcrm)
+      morettek/deskcommcrm | */morettek/deskcommcrm)
         printf '%s/main\n' "$r"; return 0 ;;
     esac
   done
@@ -101,11 +101,34 @@ pop_repo_do_produto() {
     [ -n "$url" ] || continue
     slug="$(pop_slug_de "$url")"
     case "$slug" in
-      melgarafael/deskcommcrm | */melgarafael/deskcommcrm)
-        printf 'melgarafael/DeskcommCRM\n'; return 0 ;;
+      morettek/deskcommcrm | */morettek/deskcommcrm)
+        printf 'Morettek/DeskcommCRM\n'; return 0 ;;
     esac
   done
   return 1
+}
+
+# pop_eh_o_original <url> — a URL aponta para o projeto ORIGINAL
+# (melgarafael/DeskcommCRM), de onde este fork saiu e que ele deixou de seguir?
+# A MESMA regra mora em `eh_o_original` (scripts/checar-colisao-de-migration.sh,
+# que roda sem esta biblioteca); tests/shell/colisao-de-migration.test.sh roda
+# as duas contra a mesma tabela de URLs.
+pop_eh_o_original() {
+  case "$(pop_slug_de "${1:-}")" in
+    melgarafael/deskcommcrm | */melgarafael/deskcommcrm) return 0 ;;
+  esac
+  return 1
+}
+
+# pop_remotos_do_original — os remotos cuja URL é a do projeto original. As
+# branches deles são de OUTRO produto: número usado lá não está tomado aqui, e
+# contá-lo mandaria renumerar migration por colisão que não existe.
+pop_remotos_do_original() {
+  local r
+  for r in $(git remote 2>/dev/null); do
+    pop_eh_o_original "$(git config --get "remote.$r.url" 2>/dev/null || true)" && printf '%s\n' "$r"
+  done
+  return 0
 }
 
 # pop_tem_remoto_de_github — existe algum remoto de GitHub (mesmo de fork)?
@@ -137,6 +160,8 @@ pop_tem_remoto_de_github() {
 #     Medi-las traria de volta, pela porta dos fundos, o número de um PR morto
 #     — o que é exatamente o defeito que o #1269 fechou no script de CI.
 #   * `refs/remotes/*/HEAD` é ponteiro de conveniência, nunca um dono.
+#   * as refs de remoto que aponta para o projeto ORIGINAL ficam de fora
+#     (`pop_remotos_do_original`): são de outro produto.
 #   * a ref que resolve para o MESMO commit da base (já medida) ou do HEAD (o
 #     PR de quem roda) sai da conta, senão a varredura acusa o autor de colidir
 #     com a própria branch (armadilha da #1155).
@@ -147,7 +172,9 @@ pop_refs_de_outrem() {
   bc="$(git rev-parse -q --verify "${base}^{commit}" 2>/dev/null || true)"
   hc="$(git rev-parse -q --verify "HEAD^{commit}" 2>/dev/null || true)"
   git for-each-ref --format='%(objectname) %(refname)' refs/heads refs/remotes 2>/dev/null \
-    | awk -v b="$bc" -v h="$hc" '
+    | awk -v b="$bc" -v h="$hc" -v fora="$(pop_remotos_do_original | tr '\n' ' ')" '
+        BEGIN { n = split(fora, f, " "); for (i = 1; i <= n; i++) original["refs/remotes/" f[i] "/"] = 1 }
+        { split($2, p, "/"); if (p[2] == "remotes" && (("refs/remotes/" p[3] "/") in original)) next }
         $1 != b && $1 != h && $2 !~ /\/HEAD$/ \
           && $2 !~ /^refs\/remotes\/(.+\/)?pr\/[0-9]+$/ { print $2 }'
   [ -n "$base" ] || return 0
@@ -271,7 +298,7 @@ pop_dica_proximo_livre() { # $1 = o NNNN em colisão, $2 = base, $3 = populaçã
 pop_aviso_populacao() { # $1 = "base" ou vazio; $2 = nome da base
   local base="${1:-}" nome="${2:-origin/main}"
   if [ -z "$base" ]; then
-    printf 'NÃO MEDIDO: a main do PRODUTO (remoto que aponta para melgarafael/DeskcommCRM) não está neste clone.\n'
+    printf 'NÃO MEDIDO: a main do PRODUTO (remoto que aponta para Morettek/DeskcommCRM) não está neste clone.\n'
   fi
   printf 'PRs ABERTOS (inclusive de fork) NÃO foram medidos aqui: hook e pré-voo não vão à rede.\n'
   printf '  Para medir também os PRs abertos: pnpm checar:colisao-de-migration (roda depois do commit).\n'

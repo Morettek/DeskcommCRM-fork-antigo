@@ -14,7 +14,7 @@ name: e2e
 # mesmo 127.0.0.1. Ver o comentário do passo "E2E — parte N de M".
 #
 # É CHECK OBRIGATÓRIO. A régua, para reconferir em vez de acreditar nesta linha:
-#   $ gh api repos/melgarafael/DeskcommCRM/branches/main/protection \
+#   $ gh api repos/Morettek/DeskcommCRM/branches/main/protection \
 #       --jq '.required_status_checks.contexts|join(", ")'
 #   verify, build-and-size, invariants, e2e, imagens-ok   # medido em 2026-08-14
 #
@@ -358,8 +358,9 @@ jobs:
     #
     #  - `a60cae2d` (main, PR #220) desligou a telemetria NO AMBIENTE DO CI:
     #    `SENTRY_DSN: "off"` no build e em todas as partes (e no `perf.yml`). Ver o
-    #    comentário do passo "Build de produção" abaixo — a armadilha é que vazio NÃO
-    #    desliga, seleciona o Sentry da comunidade.
+    #    comentário do passo "Build de produção" abaixo — a armadilha, na época, era que
+    #    vazio NÃO desligava: selecionava o Sentry da comunidade. Desde a troca de
+    #    identidade do fork, vazio também desliga; o `off` explícito segue valendo.
     #  - `77b4a486` (este PR) consertou O PRODUTO: o SDK do browser mandava duas SESSÕES
     #    de release health por NAVEGAÇÃO para o DSN da comunidade — de toda instalação
     #    self-host, não só do CI. `browserSessionIntegration` é default do SDK e
@@ -2084,16 +2085,16 @@ jobs:
         run: pnpm e2e:build
         env:
           NEXT_TELEMETRY_DISABLED: "1"
-          # `off`, NÃO vazio. Vazio seleciona o Sentry DA COMUNIDADE — está
-          # escrito em lib/sentry/dsn.ts:8-10, e é o default de propósito num
-          # produto self-host. Só "off" desliga.
+          # `off` explícito. Até a troca de identidade do fork, vazio selecionava
+          # o Sentry DA COMUNIDADE (o do projeto original); hoje vazio também
+          # desliga (lib/sentry/dsn.ts), e o `off` não depende desse padrão.
           #
-          # Sem isto, o SDK do browser tuneliza por /monitoring (next.config.ts:71)
-          # para o Sentry real do projeto, que devolve 429 por cota. Os 429 caem
+          # Na época, sem isto, o SDK do browser tunelizava por /monitoring
+          # (next.config.ts) para o Sentry real do projeto, que devolvia 429 por cota. Os 429 caem
           # no console, e `olhar-telas-do-epico` — a ÚNICA spec que afirma "não
           # cospe erro no console" — reprova nas 7 telas de uma vez.
           # Medido em 2026-08-10 capturando a URL: /monitoring?o=4509908078559232,
-          # que é o org id do DEFAULT_SENTRY_DSN (lib/sentry/dsn.ts:17).
+          # o org id do DSN que era o padrão (hoje DSN_DA_COMUNIDADE_ORIGINAL).
           SENTRY_DSN: "off"
 
       # ─── O browser não pesa; o espelho do apt é que pesa ───────────────────

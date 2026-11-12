@@ -44,6 +44,9 @@
 #  26. colisão de TIMESTAMP com PR aberto também avisa no arquivo.
 #  27. origin = FORK (clone de contribuidor): os PRs são do repositório PAI, e as cabeças
 #      vêm de lá — senão o gate consulta o fork, acha zero e chama isso de medição.
+#  27b. origin = o PRODUTO (Morettek/DeskcommCRM, ainda fork de REDE do original): o pai de
+#      rede não vira a população — seriam os PRs de outro produto —, nem as branches de um
+#      remoto que aponta para o original.
 #  28. o próprio PR depois de AMEND não se acusa (nem pelo nome idêntico do arquivo, nem
 #      pela cabeça publicada com o número antigo).
 #  29. cópia de PR em refs/remotes/*/pr/N (fetch de triagem) não traz fantasma de volta.
@@ -535,6 +538,72 @@ assert_exit "$code" 0 "número de PR aberto do pai não reprova"
 assert_contains "$saida" "PR aberto #7" "enxerga o PR do repositório PAI"
 assert_contains "$saida" "em up/DeskcommCRM" "declara QUAL repositório consultou"
 assert_not_contains "$saida" "0 listado(s)" "não consulta o fork e chama o zero de medição"
+
+echo "27b. origin = o PRODUTO, que ainda é fork de rede: o pai de rede não vira a população"
+# Morettek/DeskcommCRM segue caminho próprio, mas o GitHub ainda o mostra como fork do projeto
+# original. Seguir esse pai mediria os PRs de OUTRO produto. O insteadOf do original leva a uma
+# cópia local, para que a sabotagem (seguir o pai) não vá à rede.
+#
+# E o clone que guarda o original como `upstream` (o deste fork guarda) não conta as branches
+# dele: um número usado lá não está tomado aqui. A cópia do original ganha uma branch com a
+# 0299, maior que tudo deste lado — contada, ela viraria o teto e o conselho seria 0300.
+original="$TMP/original-27b"; clonar_ou_falhar "$principal" "$original" --bare
+w="$TMP/w27b"; clonar_ou_falhar "$original" "$w"; git -C "$w" switch -q -c do-original
+migrar "$w" "20260917223000_0299_do_original.sql"; commit "$w" "migration do original"
+git -C "$w" push -q origin do-original
+c="$TMP/c27b"; clonar_ou_falhar "$principal" "$c"
+git -C "$c" config remote.origin.url "https://github.com/Morettek/DeskcommCRM.git"
+git -C "$c" config "url.$principal.insteadOf" "https://github.com/Morettek/DeskcommCRM.git"
+git -C "$c" config "url.$original.insteadOf" "https://github.com/melgarafael/DeskcommCRM.git"
+git -C "$c" remote add upstream "https://github.com/melgarafael/DeskcommCRM.git"
+git -C "$c" fetch -q upstream
+if git -C "$c" rev-parse -q --verify refs/remotes/upstream/do-original >/dev/null; then
+  ok "cenário montado: a branch do original, com a 0299, está no clone"
+else falha "cenário montado: a branch do original, com a 0299, está no clone" "o fetch do upstream não trouxe a branch"; fi
+mkdir -p "$c/scripts"; cp "$GATE_ORIGEM" "$c/scripts/checar-colisao-de-migration.sh"
+git -C "$c" switch -q -c fix/pr
+migrar "$c" "20260917221000_0277_meu.sql"; commit "$c" "PR com migration nova"
+export FAKE_GH_PAI="melgarafael/DeskcommCRM"; saida="$(gate_prs "7" "$c")"; code=$?; unset FAKE_GH_PAI
+assert_exit "$code" 0 "a origin que é o produto não reprova"
+assert_contains "$saida" "em Morettek/DeskcommCRM" "consulta os PRs do próprio produto"
+assert_not_contains "$saida" "a origin é um FORK" "não trata o produto como clone de contribuidor"
+assert_not_contains "$saida" "NNNN=0300" "a 0299 do remoto do original não vira o teto"
+assert_not_contains "$saida" "0299" "nem aparece como dono de número"
+# A exclusão é de REMOTO: uma branch LOCAL chamada `upstream/…` é desta máquina e conta. O
+# filtro olhava o 3º segmento de qualquer ref, e `refs/heads/upstream/minha` sumia da conta.
+git -C "$c" switch -q -c upstream/minha
+migrar "$c" "20260917224000_0350_local.sql"; commit "$c" "branch local com nome de remoto"
+git -C "$c" switch -q fix/pr
+saida="$(gate_prs "7" "$c")"
+assert_contains "$saida" "NNNN=0351" "branch LOCAL com nome de remoto do original continua na conta"
+
+echo "27c. as duas cópias da regra 'esta URL é do original?' respondem igual"
+# A biblioteca (pop_eh_o_original) e o gate (eh_o_original, que roda sem ela) repetem a
+# regra. Sem esta tabela, uma delas pode passar a aceitar uma forma de URL que a outra
+# recusa, e o hook e o CI medem populações diferentes sem ninguém ver.
+regra_bib="$(sed -n '/^pop_slug_de()/,/^}/p; /^pop_eh_o_original()/,/^}/p' "$RAIZ/scripts/migration-populacao.sh")"
+regra_gate="$(sed -n '/^eh_o_original()/,/^}/p' "$GATE_ORIGEM")"
+if [ -n "$regra_bib" ] && [ -n "$regra_gate" ]; then ok "as duas regras foram lidas dos arquivos"
+else falha "as duas regras foram lidas dos arquivos" "biblioteca: ${#regra_bib} caracteres, gate: ${#regra_gate}"; fi
+while IFS='|' read -r url esperado; do
+  bib="$(bash -c "$regra_bib"$'\n''pop_eh_o_original "$1" && echo sim || echo nao' _ "$url")"
+  gat="$(bash -c "$regra_gate"$'\n''eh_o_original "$1" && echo sim || echo nao' _ "$url")"
+  if [ "$bib" = "$esperado" ] && [ "$gat" = "$esperado" ]; then ok "${url:-<vazia>} → $esperado nas duas"
+  else falha "${url:-<vazia>} → $esperado nas duas" "biblioteca: $bib, gate: $gat"; fi
+done <<'TABELA'
+https://github.com/melgarafael/DeskcommCRM.git|sim
+https://github.com/melgarafael/DeskcommCRM|sim
+https://github.com/MelgaRafael/DESKCOMMCRM.git|sim
+https://github.com/melgarafael/DeskcommCRM/|sim
+git@github.com:melgarafael/DeskcommCRM.git|sim
+ssh://git@github.com/melgarafael/DeskcommCRM.git|sim
+https://github.com/Morettek/DeskcommCRM.git|nao
+git@github.com:Morettek/DeskcommCRM.git|nao
+https://github.com/melgarafael/deskcomm-site.git|nao
+https://github.com/fulano/melgarafael-DeskcommCRM.git|nao
+/srv/espelhos/DeskcommCRM.git|nao
+|nao
+TABELA
 
 echo "28. o próprio PR depois de AMEND não se acusa"
 # (a) amend só da mensagem: a cabeça publicada tem o MESMO arquivo, mas deixou de ser ancestral

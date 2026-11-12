@@ -41,12 +41,27 @@
  * ⚠️ Ele é o que decide "esta corrida é de um fork?". Um PR consegue editar este
  * literal — e foi o que o #1130 fez. O que impede a edição de ligar a deferência
  * sozinha é a URL do repositório em `install.sh`, `comecar.sh`, `_common.sh` e
- * nos 3 Dockerfiles ser DERIVADA deste valor em
- * `namespace-das-imagens.test.ts`: trocar só isto deixa a URL divergente e
- * reprova lá. Não remova essa derivação pensando que é redundante — ela é o que
- * torna a âncora não-falsificável de dentro do diff.
+ * nos 3 Dockerfiles ser conferida contra `REPOSITORIO_DESTE_REPO`, cujo dono
+ * `namespace-das-imagens.test.ts` cobra que seja o MESMO deste namespace: trocar
+ * só isto reprova lá. Não remova essa amarração pensando que é redundante — ela
+ * é o que torna a âncora não-falsificável de dentro do diff.
  */
-export const NAMESPACE_DESTE_REPO = "ghcr.io/melgarafael";
+export const NAMESPACE_DESTE_REPO = "ghcr.io/morettek";
+
+/**
+ * O repositório, com a caixa do login (`Morettek`). O GHCR só aceita o dono em
+ * minúsculas, então a URL não sai do namespace por cópia: o dono dos dois é
+ * comparado sem caixa, e as URLs do kit e dos Dockerfiles são conferidas contra
+ * este valor exato.
+ */
+export const REPOSITORIO_DESTE_REPO = "Morettek/DeskcommCRM";
+
+/**
+ * O projeto de onde este fork saiu e que ele deixou de seguir. Existe para os
+ * gates que proíbem apontar PARA ele (guia que manda clonar de lá instala o
+ * produto de outro dono), nunca para apontar.
+ */
+export const REPOSITORIO_ORIGINAL = "melgarafael/DeskcommCRM";
 
 /**
  * O dono de uma referência `<registry>/<dono>`.
