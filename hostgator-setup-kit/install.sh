@@ -2659,17 +2659,14 @@ fi
 # .env do exemplo saindo com a telemetria ligada sem ninguém escolher). O texto
 # passa a refletir a escolha feita, em vez de afirmar um padrão.
 telemetria_no_banner() {
-  # Os mesmos valores que lib/sentry/dsn.ts lê como desligado.
-  case "${SENTRY_DSN:-}" in
-    "" | [Oo][Ff][Ff] | false | 0)
-      printf '%s\n' "$(t "  Telemetria: DESLIGADA — nenhum relatório de erro sai desta instalação.")"
-      printf '%s\n' "$(t "  Para mandar os erros ao SEU Sentry, ponha SENTRY_DSN=<seu-dsn> no .env e rode: {1}" "docker compose $(dc_files) up -d")"
-      ;;
-    *)
-      printf '%s\n' "$(t "  Telemetria: LIGADA — os relatórios de erro vão ao Sentry de SENTRY_DSN.")"
-      printf '%s\n' "$(t "  Para desligar, ponha SENTRY_DSN='off' no .env e rode: {1}" "docker compose $(dc_files) up -d")"
-      ;;
-  esac
+  # Vazio também é desligado (lib/sentry/dsn.ts): não há Sentry de comunidade.
+  if [ "${SENTRY_DSN:-}" = "off" ] || [ -z "${SENTRY_DSN:-}" ]; then
+    printf '%s\n' "$(t "  Telemetria: DESLIGADA — nenhum relatório de erro sai desta instalação.")"
+    printf '%s\n' "$(t "  Para mandar os erros ao SEU Sentry, ponha SENTRY_DSN=<seu-dsn> no .env e rode: {1}" "docker compose $(dc_files) up -d")"
+  else
+    printf '%s\n' "$(t "  Telemetria: LIGADA — os relatórios de erro vão ao Sentry de SENTRY_DSN.")"
+    printf '%s\n' "$(t "  Para desligar, ponha SENTRY_DSN='off' no .env e rode: {1}" "docker compose $(dc_files) up -d")"
+  fi
 }
 
 cat <<DONE

@@ -116,8 +116,10 @@ automatikpg-ux <automatikpg@gmail.com> root <root@vpsbr-15867794.vpshostgator.co
 melgarafael <rafael@maudibrasil.com.br> Pessoa <alguem@fork.dev>
 
 # @Morettek — dono do fork Morettek/DeskcommCRM, que segue caminho próprio desde
-# novembro de 2026. Prova: é a identidade do git (user.name/user.email) do clone do
-# próprio dono. A linha começa pelo LOGIN porque é por ele que
+# novembro de 2026. Prova: a API do GitHub associa este e-mail à conta @Morettek
+# (`gh api repos/Morettek/DeskcommCRM/commits/6900a7ca8 --jq .author.login` devolve
+# `Morettek`), e é a identidade do git do clone do próprio dono. A linha começa
+# pelo LOGIN porque é por ele que
 # .agents/skills/deskcomm-contribuir/scripts/quem-sou.sh reconhece o dono do produto
 # (DONO_DO_PRODUTO, em dono.sh). As linhas acima ficam: são o crédito de quem fez o
 # projeto original.
