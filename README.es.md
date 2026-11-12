@@ -19,7 +19,6 @@
 [![CI](https://github.com/Morettek/DeskcommCRM/actions/workflows/ci.yml/badge.svg)](https://github.com/Morettek/DeskcommCRM/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
-[![Sponsor](https://img.shields.io/badge/Sponsor-%E2%9D%A4-ea4aaa?logo=githubsponsors&logoColor=white)](https://github.com/sponsors/melgarafael)
 <!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
 [![All Contributors](https://img.shields.io/badge/all_contributors-170-orange.svg?style=flat-square)](#contributors-)
 <!-- ALL-CONTRIBUTORS-BADGE:END -->
@@ -401,7 +400,7 @@ Dos gates obligatorios **no** entran ahí y solo corren en CI: `e2e` (necesita u
 
 Gracias a cada persona que ya contribuyó con código, un bug bien reportado, una idea, documentación o una traducción. Para entrar en esta lista, mira [cómo contribuir](CONTRIBUTING.md) ([leyenda de los íconos](https://allcontributors.org/docs/en/emoji-key)).
 
-¿Quieres apoyar el proyecto de otra forma? [Patrocínalo en GitHub Sponsors](https://github.com/sponsors/melgarafael).
+¿Quieres apoyar a quien creó el proyecto original? Su autor, Rafael Melgaço, recibe patrocinio en [GitHub Sponsors](https://github.com/sponsors/melgarafael).
 
 <!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
 <!-- prettier-ignore-start -->
@@ -667,10 +666,8 @@ Para **vulnerabilidades de seguridad**, **NO abras un issue público** — usa e
 
 ## 💬 Comunidad
 
-- **Discusiones:** [GitHub Discussions](https://github.com/Morettek/DeskcommCRM/discussions)
-- **Issues:** [GitHub Issues](https://github.com/Morettek/DeskcommCRM/issues)
-- **Instagram:** [@melgarafael](https://www.instagram.com/melgarafael)
-- **YouTube:** [youtube.com/@melgarafael](https://www.youtube.com/@melgarafael)
+- **Issues:** [GitHub Issues](https://github.com/Morettek/DeskcommCRM/issues) — dudas, bugs y tareas.
+- **Proyecto original:** [melgarafael/DeskcommCRM](https://github.com/melgarafael/DeskcommCRM), de Rafael Melgaço ([Instagram](https://www.instagram.com/melgarafael) · [YouTube](https://www.youtube.com/@melgarafael)). Este repositorio es un fork que sigue su propio camino; los canales del autor son suyos, no de este repositorio.
 
 ---
 

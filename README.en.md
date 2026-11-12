@@ -19,7 +19,6 @@
 [![CI](https://github.com/Morettek/DeskcommCRM/actions/workflows/ci.yml/badge.svg)](https://github.com/Morettek/DeskcommCRM/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
-[![Sponsor](https://img.shields.io/badge/Sponsor-%E2%9D%A4-ea4aaa?logo=githubsponsors&logoColor=white)](https://github.com/sponsors/melgarafael)
 <!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
 [![All Contributors](https://img.shields.io/badge/all_contributors-170-orange.svg?style=flat-square)](#contributors-)
 <!-- ALL-CONTRIBUTORS-BADGE:END -->
@@ -478,7 +477,7 @@ Two required gates do **not** fit there and only run in CI: `e2e` (needs a local
 
 Thanks to everyone who has contributed code, a well-reported bug, an idea, docs or a translation. To join this list, see [how to contribute](CONTRIBUTING.en.md) ([emoji key](https://allcontributors.org/docs/en/emoji-key)).
 
-Want to support the project another way? [Sponsor it on GitHub Sponsors](https://github.com/sponsors/melgarafael).
+Want to support whoever created the original project? Its author, Rafael Melgaço, takes sponsorship on [GitHub Sponsors](https://github.com/sponsors/melgarafael).
 
 <!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
 <!-- prettier-ignore-start -->
@@ -744,10 +743,8 @@ For **security vulnerabilities**, **do NOT open a public issue** — use [privat
 
 ## 💬 Community
 
-- **Discussions:** [GitHub Discussions](https://github.com/Morettek/DeskcommCRM/discussions)
-- **Issues:** [GitHub Issues](https://github.com/Morettek/DeskcommCRM/issues)
-- **Instagram:** [@melgarafael](https://www.instagram.com/melgarafael)
-- **YouTube:** [youtube.com/@melgarafael](https://www.youtube.com/@melgarafael)
+- **Issues:** [GitHub Issues](https://github.com/Morettek/DeskcommCRM/issues) — questions, bugs and tasks.
+- **Original project:** [melgarafael/DeskcommCRM](https://github.com/melgarafael/DeskcommCRM), by Rafael Melgaço ([Instagram](https://www.instagram.com/melgarafael) · [YouTube](https://www.youtube.com/@melgarafael)). This repository is a fork that follows its own path; the author's channels are his, not this repository's.
 
 ---
 

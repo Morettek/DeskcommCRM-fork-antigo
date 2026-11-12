@@ -236,9 +236,8 @@ prática está no [`README.md`](README.md) §Desenvolvimento.
 
 ## Suporte
 
-**[GitHub Discussions](https://github.com/Morettek/DeskcommCRM/discussions)** — é o canal público,
-funciona para qualquer pessoa e é onde a resposta fica registrada para quem vier depois. Para bug,
-[abra uma issue](https://github.com/Morettek/DeskcommCRM/issues/new/choose).
+**[Abra uma issue](https://github.com/Morettek/DeskcommCRM/issues/new/choose)** — dúvida ou bug. É o canal público, funciona
+para qualquer pessoa e é onde a resposta fica registrada para quem vier depois.
 
 Se for algo que não cabe em público (segurança, por exemplo): o [relato privado do GitHub](https://github.com/Morettek/DeskcommCRM/security/advisories/new),
 que chega só aos mantenedores — o mesmo canal do [`SECURITY.md`](SECURITY.md) e do

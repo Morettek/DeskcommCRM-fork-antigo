@@ -233,9 +233,8 @@ See [`README.en.md`](README.en.md) §Development — how to run locally.
 
 ## Support
 
-**[GitHub Discussions](https://github.com/Morettek/DeskcommCRM/discussions)** — it is the public
-channel, works for anyone and is where the answer stays recorded for whoever comes after. For bugs,
-[open an issue](https://github.com/Morettek/DeskcommCRM/issues/new/choose).
+**[Open an issue](https://github.com/Morettek/DeskcommCRM/issues/new/choose)** — question or bug. It is the public channel, works
+for anyone and is where the answer stays recorded for whoever comes after.
 
 If it is something that does not fit in public (security, for example): GitHub's [private report](https://github.com/Morettek/DeskcommCRM/security/advisories/new),
 which reaches only the maintainers — the same channel as in [`SECURITY.md`](SECURITY.md) and

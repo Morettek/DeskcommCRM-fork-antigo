@@ -24,4 +24,4 @@ Key facts:
 
 ## Repository
 
-- [GitHub](https://github.com/Morettek/DeskcommCRM): source code, issues, discussions
+- [GitHub](https://github.com/Morettek/DeskcommCRM): source code and issues

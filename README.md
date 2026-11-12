@@ -19,7 +19,6 @@
 [![CI](https://github.com/Morettek/DeskcommCRM/actions/workflows/ci.yml/badge.svg)](https://github.com/Morettek/DeskcommCRM/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
-[![Sponsor](https://img.shields.io/badge/Sponsor-%E2%9D%A4-ea4aaa?logo=githubsponsors&logoColor=white)](https://github.com/sponsors/melgarafael)
 <!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
 [![All Contributors](https://img.shields.io/badge/all_contributors-170-orange.svg?style=flat-square)](#contributors-)
 <!-- ALL-CONTRIBUTORS-BADGE:END -->
@@ -493,7 +492,7 @@ o `imagens-ok` (constrói as três imagens Docker). Verde na sua máquina não �
 
 Obrigado a cada pessoa que já contribuiu, com código, bug bem relatado, ideia, documentação ou tradução. Para entrar nesta lista, veja [como contribuir](CONTRIBUTING.md) ([legenda dos ícones](https://allcontributors.org/docs/en/emoji-key)).
 
-Quer apoiar o projeto de outro jeito? [Patrocine no GitHub Sponsors](https://github.com/sponsors/melgarafael).
+Quer apoiar quem criou o projeto original? O autor, Rafael Melgaço, recebe patrocínio pelo [GitHub Sponsors](https://github.com/sponsors/melgarafael).
 
 <!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
 <!-- prettier-ignore-start -->
@@ -759,10 +758,8 @@ Pra **vulnerabilidades de segurança**, **NÃO abra issue pública** — use o [
 
 ## 💬 Comunidade
 
-- **Discussões:** [GitHub Discussions](https://github.com/Morettek/DeskcommCRM/discussions) — pra perguntas, ideias, showcase.
-- **Issues:** [GitHub Issues](https://github.com/Morettek/DeskcommCRM/issues) — bugs e tasks.
-- **Instagram:** [@melgarafael](https://www.instagram.com/melgarafael)
-- **YouTube:** [youtube.com/@melgarafael](https://www.youtube.com/@melgarafael)
+- **Issues:** [GitHub Issues](https://github.com/Morettek/DeskcommCRM/issues) — dúvidas, bugs e tasks.
+- **Projeto original:** [melgarafael/DeskcommCRM](https://github.com/melgarafael/DeskcommCRM), de Rafael Melgaço ([Instagram](https://www.instagram.com/melgarafael) · [YouTube](https://www.youtube.com/@melgarafael)). Este repositório é um fork que segue caminho próprio; os canais do autor são dele, não deste repositório.
 
 ---
 
@@ -780,8 +777,7 @@ Este é um projeto **self-host**: cada pessoa roda o CRM na **própria infraestr
 (VPS, banco Supabase e chave de IA próprios). Isso implica:
 
 - **Suporte é comunitário e "as-is".** Dúvidas e bugs entram como
-  [Issues](https://github.com/Morettek/DeskcommCRM/issues) ou
-  [Discussions](https://github.com/Morettek/DeskcommCRM/discussions). Não há SLA nem
+  [Issues](https://github.com/Morettek/DeskcommCRM/issues). Não há SLA nem
   suporte garantido — é open source mantido por boa vontade.
 - **Você é responsável pela sua instalação.** Atualizações não são automáticas (você clica
   ou roda `update.sh` quando quiser), e manter/backup do seu servidor é com você.
@@ -819,6 +815,6 @@ Este é um projeto **self-host**: cada pessoa roda o CRM na **própria infraestr
 
 **Built with ☕ in Brasil** · **Made for the community**
 
-Siga o desenvolvimento: [Instagram](https://www.instagram.com/melgarafael) · [YouTube](https://www.youtube.com/@melgarafael)
+Projeto original: [melgarafael/DeskcommCRM](https://github.com/melgarafael/DeskcommCRM), de Rafael Melgaço
 
 </div>
