@@ -9,7 +9,7 @@
 #      fazia todo PR com migration conflitar; linha nele ainda passa, para PR
 #      aberto antes de 02/10/2026)
 # E o NNNN e o TIMESTAMP do nome novo não podem existir na POPULAÇÃO que os
-# mediu: a main do PRODUTO (o remoto que aponta para melgarafael/DeskcommCRM, com
+# mediu: a main do PRODUTO (o remoto que aponta para $DONO_DO_PRODUTO/DeskcommCRM, com
 # qualquer nome) mais as outras refs do clone. Colisão é o defeito nº 1 da
 # triagem (renumerada 11 vezes desde agosto de 2026), e quem cria migration
 # copiando outra copia os dois. A população — e o que ela DEIXA de fora — é a
@@ -23,13 +23,17 @@ set -euo pipefail
 [ "${DESKCOMM_MIGRATION_EDIT:-0}" = "1" ] && exit 0
 
 top="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+# O dono do produto mora em ../dono.sh; o repositório do produto sai dele.
+DONO_DO_PRODUTO=""
+. "$(dirname "${BASH_SOURCE[0]}")/../dono.sh" 2>/dev/null || true
+REPO_DO_PRODUTO="${DONO_DO_PRODUTO}/DeskcommCRM"
 
 novas="$(git diff --cached --name-status | awk '$1 == "A" && $2 ~ /^supabase\/migrations\/.*\.sql$/ { print $2 }')"
 # ── A POPULAÇÃO da unicidade (issue #1273) ──────────────────────────────────────
 #
 # A pergunta deste hook é "esse número já foi usado ou reservado?", e a resposta
 # honesta é sobre a main do PRODUTO (o remoto que aponta para
-# melgarafael/DeskcommCRM, com QUALQUER nome) mais as outras refs do clone. A
+# $DONO_DO_PRODUTO/DeskcommCRM, com QUALQUER nome) mais as outras refs do clone. A
 # versão anterior media `origin/main` + `git branch` — e essas duas são o
 # recorte que a issue mediu como errado: num clone de fork, a `origin/main` é a
 # main DO FORK (que pode estar atrás da do principal, e o hook saía com 0
@@ -97,7 +101,7 @@ fi
 [ -z "$novas" ] && exit 0
 
 if [ "$aviso_fork" = 1 ]; then
-  echo "pre-commit AVISO: NNNN/timestamp NÃO MEDIDOS contra a main do PRODUTO: nenhum remoto aponta para melgarafael/DeskcommCRM (a base é a origin/main do seu fork, que pode estar atrás). Corrija com: git remote add upstream https://github.com/melgarafael/DeskcommCRM.git && git fetch upstream (#1273)" >&2
+  echo "pre-commit AVISO: NNNN/timestamp NÃO MEDIDOS contra a main do PRODUTO: nenhum remoto aponta para ${REPO_DO_PRODUTO} (a base é a origin/main do seu fork, que pode estar atrás). Corrija com: git remote add upstream https://github.com/${REPO_DO_PRODUTO}.git && git fetch upstream (#1273)" >&2
 fi
 
 staged="$(git diff --cached --name-only)"
