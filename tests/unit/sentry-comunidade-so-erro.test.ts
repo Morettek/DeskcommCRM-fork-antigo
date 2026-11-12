@@ -33,6 +33,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 import {
+  DSN_DA_COMUNIDADE_ORIGINAL,
   INTEGRACAO_DE_SESSAO,
   INTEGRACAO_DE_TRACING,
   integracoesDoCliente,
@@ -248,5 +249,10 @@ describe("o ambiente da suíte desliga a telemetria", () => {
     const dsnDoOperador = "https://abc123@o0.ingest.sentry.io/42";
     expect(resolveSentryDsn(` ${dsnDoOperador} `)).toBe(dsnDoOperador);
     expect(isCommunityDsn(resolveSentryDsn(dsnDoOperador))).toBe(false);
+    // Controle positivo: a política só-erro continua reconhecendo o DSN do
+    // projeto original, quando alguém o escreve à mão — senão o `false` acima
+    // passaria com um `isCommunityDsn` que nunca diz sim.
+    expect(isCommunityDsn(DSN_DA_COMUNIDADE_ORIGINAL)).toBe(true);
+    expect(isCommunityDsn(resolveSentryDsn(DSN_DA_COMUNIDADE_ORIGINAL))).toBe(true);
   });
 });

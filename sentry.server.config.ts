@@ -10,7 +10,8 @@ const sentryDsn = resolveSentryDsn(process.env.SENTRY_DSN);
 const community = isCommunityDsn(sentryDsn);
 
 Sentry.init({
-  dsn: sentryDsn,
+  // `""`, não `undefined`: sem DSN o SDK lê SENTRY_DSN do ambiente sozinho, e "off" ali não é DSN.
+  dsn: sentryDsn ?? "",
 
   // No Sentry da comunidade, só erro (issue #100). Ver isCommunityDsn().
   tracesSampleRate: community ? 0 : 1,
