@@ -703,4 +703,6 @@ Este es un proyecto **self-host**: cada persona corre el CRM en su **propia infr
 
 **Built with ☕ in Brasil** · **Made for the community**
 
+Proyecto original: [melgarafael/DeskcommCRM](https://github.com/melgarafael/DeskcommCRM), de Rafael Melgaço
+
 </div>
