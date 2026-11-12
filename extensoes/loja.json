@@ -1,7 +1,7 @@
 {
   "deskcomm/retorno-de-paciente": {
     "publisher_label": "Deskcomm",
-    "repository": "https://github.com/melgarafael/DeskcommCRM",
+    "repository": "https://github.com/Morettek/DeskcommCRM",
     "tags": [
       "clinica",
       "retorno",
@@ -11,7 +11,7 @@
   },
   "deskcomm/carrinho-abandonado": {
     "publisher_label": "Deskcomm",
-    "repository": "https://github.com/melgarafael/DeskcommCRM",
+    "repository": "https://github.com/Morettek/DeskcommCRM",
     "tags": [
       "ecommerce",
       "vendas",
@@ -21,7 +21,7 @@
   },
   "deskcomm/primeira-semana": {
     "publisher_label": "Deskcomm",
-    "repository": "https://github.com/melgarafael/DeskcommCRM",
+    "repository": "https://github.com/Morettek/DeskcommCRM",
     "tags": [
       "equipe",
       "treinamento"

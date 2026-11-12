@@ -44,6 +44,8 @@
 #  26. colisão de TIMESTAMP com PR aberto também avisa no arquivo.
 #  27. origin = FORK (clone de contribuidor): os PRs são do repositório PAI, e as cabeças
 #      vêm de lá — senão o gate consulta o fork, acha zero e chama isso de medição.
+#  27b. origin = o PRODUTO (Morettek/DeskcommCRM, ainda fork de REDE do original): o pai de
+#      rede não vira a população — seriam os PRs de outro produto.
 #  28. o próprio PR depois de AMEND não se acusa (nem pelo nome idêntico do arquivo, nem
 #      pela cabeça publicada com o número antigo).
 #  29. cópia de PR em refs/remotes/*/pr/N (fetch de triagem) não traz fantasma de volta.
@@ -535,6 +537,22 @@ assert_exit "$code" 0 "número de PR aberto do pai não reprova"
 assert_contains "$saida" "PR aberto #7" "enxerga o PR do repositório PAI"
 assert_contains "$saida" "em up/DeskcommCRM" "declara QUAL repositório consultou"
 assert_not_contains "$saida" "0 listado(s)" "não consulta o fork e chama o zero de medição"
+
+echo "27b. origin = o PRODUTO, que ainda é fork de rede: o pai de rede não vira a população"
+# Morettek/DeskcommCRM segue caminho próprio, mas o GitHub ainda o mostra como fork do projeto
+# original. Seguir esse pai mediria os PRs de OUTRO produto. O insteadOf do pai leva para cá
+# também, para que a sabotagem (seguir o pai) não vá à rede.
+c="$TMP/c27b"; clonar_ou_falhar "$principal" "$c"
+git -C "$c" config remote.origin.url "https://github.com/Morettek/DeskcommCRM.git"
+git -C "$c" config "url.$principal.insteadOf" "https://github.com/Morettek/DeskcommCRM.git"
+git -C "$c" config --add "url.$principal.insteadOf" "https://github.com/melgarafael/DeskcommCRM.git"
+mkdir -p "$c/scripts"; cp "$GATE_ORIGEM" "$c/scripts/checar-colisao-de-migration.sh"
+git -C "$c" switch -q -c fix/pr
+migrar "$c" "20260917221000_0277_meu.sql"; commit "$c" "PR com migration nova"
+export FAKE_GH_PAI="melgarafael/DeskcommCRM"; saida="$(gate_prs "7" "$c")"; code=$?; unset FAKE_GH_PAI
+assert_exit "$code" 0 "a origin que é o produto não reprova"
+assert_contains "$saida" "em Morettek/DeskcommCRM" "consulta os PRs do próprio produto"
+assert_not_contains "$saida" "a origin é um FORK" "não trata o produto como clone de contribuidor"
 
 echo "28. o próprio PR depois de AMEND não se acusa"
 # (a) amend só da mensagem: a cabeça publicada tem o MESMO arquivo, mas deixou de ser ancestral

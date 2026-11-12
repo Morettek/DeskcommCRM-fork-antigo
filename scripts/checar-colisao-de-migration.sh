@@ -229,7 +229,11 @@ case "$url_origin" in
 esac
 repo_prs="$repo_origin"; fonte_cabecas="origin"
 prs_listados=""; prs_n_listados=0; prs_medidos=0; prs_falhos=""; prs_motivo=""; proprios=""
-if [ -n "$repo_origin" ]; then
+# Morettek/DeskcommCRM ainda é fork DE REDE do projeto original no GitHub, mas segue caminho
+# próprio: quando a origin É o produto, o pai de rede não é a população deste PR. O slug é o
+# mesmo de `pop_repo_do_produto` (scripts/migration-populacao.sh) — mudou lá, muda aqui.
+case "$(tr 'A-Z' 'a-z' <<<"$repo_origin")" in morettek/deskcommcrm) repo_origin_eh_o_produto=1 ;; *) repo_origin_eh_o_produto=0 ;; esac
+if [ -n "$repo_origin" ] && [ "$repo_origin_eh_o_produto" = 0 ]; then
   if pai="$(gh repo view "github.com/$repo_origin" --json isFork,parent \
               --jq 'if .isFork then .parent.owner.login + "/" + .parent.name else "" end' 2>"$erro_gh")"; then
     pai="$(grep -E '^[^/[:space:]]+/[^/[:space:]]+$' <<<"$pai" | head -1 || true)"

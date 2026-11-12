@@ -16,7 +16,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178c6?logo=typescript)](https://www.typescriptlang.org)
 [![Supabase](https://img.shields.io/badge/Supabase-Postgres%2BAuth%2BStorage-3ecf8e?logo=supabase)](https://supabase.com)
 [![Self-hosted](https://img.shields.io/badge/self--hosted-1%20comando-orange)](hostgator-setup-kit/)
-[![CI](https://github.com/melgarafael/DeskcommCRM/actions/workflows/ci.yml/badge.svg)](https://github.com/melgarafael/DeskcommCRM/actions/workflows/ci.yml)
+[![CI](https://github.com/Morettek/DeskcommCRM/actions/workflows/ci.yml/badge.svg)](https://github.com/Morettek/DeskcommCRM/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 [![Sponsor](https://img.shields.io/badge/Sponsor-%E2%9D%A4-ea4aaa?logo=githubsponsors&logoColor=white)](https://github.com/sponsors/melgarafael)
@@ -45,7 +45,7 @@
 > comando certo pro seu caso:
 >
 > ```bash
-> curl -fsSL https://raw.githubusercontent.com/melgarafael/DeskcommCRM/main/hostgator-setup-kit/comecar.sh | bash
+> curl -fsSL https://raw.githubusercontent.com/Morettek/DeskcommCRM/main/hostgator-setup-kit/comecar.sh | bash
 > ```
 >
 > *(prefere ler antes de executar? clone o repo e rode `bash hostgator-setup-kit/comecar.sh` —
@@ -78,7 +78,7 @@ travamento: é o terminal escondendo a senha. Digite (ou cole) e dê Enter.
 Já dentro da VPS:
 
 ```bash
-git clone https://github.com/melgarafael/DeskcommCRM.git
+git clone https://github.com/Morettek/DeskcommCRM.git
 cd DeskcommCRM
 bash hostgator-setup-kit/install.sh
 ```
@@ -149,7 +149,7 @@ do agente e contribuir. Para tê-los em **qualquer pasta** — inclusive antes d
 computador —, rode uma vez:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/melgarafael/DeskcommCRM/main/scripts/instalar-guias.sh | bash
+curl -fsSL https://raw.githubusercontent.com/Morettek/DeskcommCRM/main/scripts/instalar-guias.sh | bash
 ```
 
 Depois abra uma sessão nova do seu assistente e diga *"quero instalar o CRM na minha VPS"*: pedir o
@@ -161,7 +161,7 @@ Os guias **não** se atualizam sozinhos: rodar o mesmo comando de novo traz a ve
 desfazer:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/melgarafael/DeskcommCRM/main/scripts/instalar-guias.sh | bash -s -- --remover
+curl -fsSL https://raw.githubusercontent.com/Morettek/DeskcommCRM/main/scripts/instalar-guias.sh | bash -s -- --remover
 ```
 
 Com o repositório já clonado, os guias vêm dentro dele (`.agents/skills/`) e nem isso é preciso. Se
@@ -338,7 +338,7 @@ Detalhes: [`ARCHITECTURE.md`](ARCHITECTURE.md).
 > Esta seção é pra quem vai mexer no código.
 
 ```bash
-git clone https://github.com/melgarafael/DeskcommCRM.git
+git clone https://github.com/Morettek/DeskcommCRM.git
 cd DeskcommCRM
 
 nvm use                     # Node 22
@@ -409,7 +409,7 @@ pnpm test:e2e      # Playwright (requer dev server)
 **Estes checks são obrigatórios** pra mergear na `main`. A lista abaixo já disse "quatro" e depois "cinco" — **meça, não confie nela**:
 
 ```bash
-gh api repos/melgarafael/DeskcommCRM/branches/main/protection \
+gh api repos/Morettek/DeskcommCRM/branches/main/protection \
   --jq '.required_status_checks.contexts|join(", ")'
 # em 2026-08-14: verify, build-and-size, invariants, e2e, imagens-ok
 ```
@@ -726,9 +726,9 @@ Quer apoiar o projeto de outro jeito? [Patrocine no GitHub Sponsors](https://git
 
 ## 🐛 Reportando bugs
 
-Abra uma [issue](https://github.com/melgarafael/DeskcommCRM/issues/new/choose) — o template pede o que precisamos (ambiente, `/api/v1/health`, steps). Rodar `bash hostgator-setup-kit/healthcheck.sh` e colar a saída ajuda muito.
+Abra uma [issue](https://github.com/Morettek/DeskcommCRM/issues/new/choose) — o template pede o que precisamos (ambiente, `/api/v1/health`, steps). Rodar `bash hostgator-setup-kit/healthcheck.sh` e colar a saída ajuda muito.
 
-Pra **vulnerabilidades de segurança**, **NÃO abra issue pública** — use o [relato privado de vulnerabilidades](https://github.com/melgarafael/DeskcommCRM/security/advisories/new). Detalhes em [`SECURITY.md`](SECURITY.md).
+Pra **vulnerabilidades de segurança**, **NÃO abra issue pública** — use o [relato privado de vulnerabilidades](https://github.com/Morettek/DeskcommCRM/security/advisories/new). Detalhes em [`SECURITY.md`](SECURITY.md).
 
 ---
 
@@ -759,8 +759,8 @@ Pra **vulnerabilidades de segurança**, **NÃO abra issue pública** — use o [
 
 ## 💬 Comunidade
 
-- **Discussões:** [GitHub Discussions](https://github.com/melgarafael/DeskcommCRM/discussions) — pra perguntas, ideias, showcase.
-- **Issues:** [GitHub Issues](https://github.com/melgarafael/DeskcommCRM/issues) — bugs e tasks.
+- **Discussões:** [GitHub Discussions](https://github.com/Morettek/DeskcommCRM/discussions) — pra perguntas, ideias, showcase.
+- **Issues:** [GitHub Issues](https://github.com/Morettek/DeskcommCRM/issues) — bugs e tasks.
 - **Instagram:** [@melgarafael](https://www.instagram.com/melgarafael)
 - **YouTube:** [youtube.com/@melgarafael](https://www.youtube.com/@melgarafael)
 
@@ -780,8 +780,8 @@ Este é um projeto **self-host**: cada pessoa roda o CRM na **própria infraestr
 (VPS, banco Supabase e chave de IA próprios). Isso implica:
 
 - **Suporte é comunitário e "as-is".** Dúvidas e bugs entram como
-  [Issues](https://github.com/melgarafael/DeskcommCRM/issues) ou
-  [Discussions](https://github.com/melgarafael/DeskcommCRM/discussions). Não há SLA nem
+  [Issues](https://github.com/Morettek/DeskcommCRM/issues) ou
+  [Discussions](https://github.com/Morettek/DeskcommCRM/discussions). Não há SLA nem
   suporte garantido — é open source mantido por boa vontade.
 - **Você é responsável pela sua instalação.** Atualizações não são automáticas (você clica
   ou roda `update.sh` quando quiser), e manter/backup do seu servidor é com você.
