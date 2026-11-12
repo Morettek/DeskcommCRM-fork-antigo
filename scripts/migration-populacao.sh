@@ -108,6 +108,20 @@ pop_repo_do_produto() {
   return 1
 }
 
+# pop_remotos_do_original — os remotos que apontam para o projeto ORIGINAL
+# (melgarafael/DeskcommCRM), de onde este fork saiu e que ele deixou de seguir.
+# As branches deles são de OUTRO produto: número usado lá não está tomado aqui,
+# e contá-lo mandaria renumerar migration por colisão que não existe.
+pop_remotos_do_original() {
+  local r url
+  for r in $(git remote 2>/dev/null); do
+    url="$(git config --get "remote.$r.url" 2>/dev/null || true)"
+    case "$(pop_slug_de "$url")" in
+      melgarafael/deskcommcrm | */melgarafael/deskcommcrm) printf '%s\n' "$r" ;;
+    esac
+  done
+}
+
 # pop_tem_remoto_de_github — existe algum remoto de GitHub (mesmo de fork)?
 # Serve para distinguir "clone de fork sem o remoto do principal" (que precisa
 # declarar NÃO MEDIDO) de "fixture sem nenhum remoto" (que só tem o que tem).
@@ -137,6 +151,8 @@ pop_tem_remoto_de_github() {
 #     Medi-las traria de volta, pela porta dos fundos, o número de um PR morto
 #     — o que é exatamente o defeito que o #1269 fechou no script de CI.
 #   * `refs/remotes/*/HEAD` é ponteiro de conveniência, nunca um dono.
+#   * as refs de remoto que aponta para o projeto ORIGINAL ficam de fora
+#     (`pop_remotos_do_original`): são de outro produto.
 #   * a ref que resolve para o MESMO commit da base (já medida) ou do HEAD (o
 #     PR de quem roda) sai da conta, senão a varredura acusa o autor de colidir
 #     com a própria branch (armadilha da #1155).
@@ -147,7 +163,9 @@ pop_refs_de_outrem() {
   bc="$(git rev-parse -q --verify "${base}^{commit}" 2>/dev/null || true)"
   hc="$(git rev-parse -q --verify "HEAD^{commit}" 2>/dev/null || true)"
   git for-each-ref --format='%(objectname) %(refname)' refs/heads refs/remotes 2>/dev/null \
-    | awk -v b="$bc" -v h="$hc" '
+    | awk -v b="$bc" -v h="$hc" -v fora="$(pop_remotos_do_original | tr '\n' ' ')" '
+        BEGIN { n = split(fora, f, " "); for (i = 1; i <= n; i++) original["refs/remotes/" f[i] "/"] = 1 }
+        { split($2, p, "/"); if (("refs/remotes/" p[3] "/") in original) next }
         $1 != b && $1 != h && $2 !~ /\/HEAD$/ \
           && $2 !~ /^refs\/remotes\/(.+\/)?pr\/[0-9]+$/ { print $2 }'
   [ -n "$base" ] || return 0

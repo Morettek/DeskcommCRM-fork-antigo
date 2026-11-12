@@ -362,6 +362,23 @@ describe("a população inclui as branches REMOTAS, e deixa de fora as cópias d
     ).toBe("0");
   });
 
+  it("a branch de um remoto que aponta para o projeto ORIGINAL não entra: é de outro produto", () => {
+    // Este fork segue caminho próprio: um número usado no original não está
+    // tomado aqui. O controle é a MESMA branch sob um remoto qualquer, que entra.
+    const principal = repoComMigration("0324");
+    const clone = clonar(principal);
+    git(clone, "checkout", "-q", "-b", "do-original");
+    escrever(clone, "supabase/migrations/20260902000000_0499_do_original.sql", "select 1;\n");
+    commitar(clone, "original");
+    git(clone, "checkout", "-q", "main");
+    git(clone, "remote", "add", "original", "https://github.com/melgarafael/DeskcommCRM.git");
+    git(clone, "update-ref", "refs/remotes/original/do-original", "refs/heads/do-original");
+    git(clone, "update-ref", "refs/remotes/origin/do-original", "refs/heads/do-original");
+    const refs = bashComBiblioteca(clone, 'pop_refs_de_outrem ""').stdout;
+    expect(refs, "controle: sob outro remoto a mesma branch entra").toContain("refs/remotes/origin/do-original");
+    expect(refs).not.toContain("refs/remotes/original/");
+  });
+
   it("a cópia em refs/remotes/*/pr/N NÃO entra: ela sobrevive ao fechamento do PR", () => {
     // É a distinção que fecha a porta dos fundos: o script de CI mede os PRs
     // ABERTOS pela LISTA do gh, e uma cópia de cabeça em refs/remotes não é

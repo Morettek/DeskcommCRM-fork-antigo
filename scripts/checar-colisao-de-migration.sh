@@ -170,12 +170,25 @@ head_commit="$(git rev-parse HEAD^{commit} 2>/dev/null || true)"
 # de FORA: os PRs entram pela lista de ABERTOS, e essas cópias persistem depois que o PR
 # fecha — no clone do mantenedor, 919 delas, 891 de PR não aberto (medido em 19/09/2026).
 # Seria o curinga refs/pull/* entrando pela porta dos fundos.
+# Remotos que apontam para o projeto ORIGINAL (melgarafael/DeskcommCRM): este fork segue
+# caminho próprio, e um número usado lá não está tomado aqui. A regra é a mesma de
+# `pop_remotos_do_original` (scripts/migration-populacao.sh) — mudou lá, muda aqui; este
+# script roda sozinho (o teste o copia sem a biblioteca), por isso não a importa.
+remotos_do_original=""
+for r in $(git remote 2>/dev/null); do
+  case "$(git config --get "remote.$r.url" 2>/dev/null | tr 'A-Z' 'a-z' \
+          | sed -E 's#^.*github\.com[:/]+##; s#\.git$##; s#/+$##')" in
+    melgarafael/deskcommcrm | */melgarafael/deskcommcrm) remotos_do_original="$remotos_do_original $r" ;;
+  esac
+done
 raso=0; [ -f "$(git rev-parse --git-dir)/shallow" ] && raso=1
 filtro_ancestral=(); [ "$raso" = 0 ] && filtro_ancestral=(--no-merged HEAD)
 refs_de_outrem() { # $@ = padrões de ref
   git for-each-ref ${filtro_ancestral[@]+"${filtro_ancestral[@]}"} \
       --format='%(objectname) %(refname)' "$@" 2>/dev/null \
-    | awk -v b="$base_commit" -v h="$head_commit" '
+    | awk -v b="$base_commit" -v h="$head_commit" -v fora="$remotos_do_original" '
+        BEGIN { n = split(fora, f, " "); for (i = 1; i <= n; i++) original["refs/remotes/" f[i] "/"] = 1 }
+        { split($2, p, "/"); if (("refs/remotes/" p[3] "/") in original) next }
         $2 != "refs/remotes/origin/HEAD" && $2 !~ /^refs\/remotes\/[^\/]+\/pr\/[0-9]+$/ \
           && $1 != b && $1 != h { print $2 }' || true
 }

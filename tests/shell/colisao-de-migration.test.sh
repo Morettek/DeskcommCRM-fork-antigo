@@ -45,7 +45,8 @@
 #  27. origin = FORK (clone de contribuidor): os PRs são do repositório PAI, e as cabeças
 #      vêm de lá — senão o gate consulta o fork, acha zero e chama isso de medição.
 #  27b. origin = o PRODUTO (Morettek/DeskcommCRM, ainda fork de REDE do original): o pai de
-#      rede não vira a população — seriam os PRs de outro produto.
+#      rede não vira a população — seriam os PRs de outro produto —, nem as branches de um
+#      remoto que aponta para o original.
 #  28. o próprio PR depois de AMEND não se acusa (nem pelo nome idêntico do arquivo, nem
 #      pela cabeça publicada com o número antigo).
 #  29. cópia de PR em refs/remotes/*/pr/N (fetch de triagem) não traz fantasma de volta.
@@ -540,12 +541,25 @@ assert_not_contains "$saida" "0 listado(s)" "não consulta o fork e chama o zero
 
 echo "27b. origin = o PRODUTO, que ainda é fork de rede: o pai de rede não vira a população"
 # Morettek/DeskcommCRM segue caminho próprio, mas o GitHub ainda o mostra como fork do projeto
-# original. Seguir esse pai mediria os PRs de OUTRO produto. O insteadOf do pai leva para cá
-# também, para que a sabotagem (seguir o pai) não vá à rede.
+# original. Seguir esse pai mediria os PRs de OUTRO produto. O insteadOf do original leva a uma
+# cópia local, para que a sabotagem (seguir o pai) não vá à rede.
+#
+# E o clone que guarda o original como `upstream` (o deste fork guarda) não conta as branches
+# dele: um número usado lá não está tomado aqui. A cópia do original ganha uma branch com a
+# 0299, maior que tudo deste lado — contada, ela viraria o teto e o conselho seria 0300.
+original="$TMP/original-27b"; clonar_ou_falhar "$principal" "$original" --bare
+w="$TMP/w27b"; clonar_ou_falhar "$original" "$w"; git -C "$w" switch -q -c do-original
+migrar "$w" "20260917223000_0299_do_original.sql"; commit "$w" "migration do original"
+git -C "$w" push -q origin do-original
 c="$TMP/c27b"; clonar_ou_falhar "$principal" "$c"
 git -C "$c" config remote.origin.url "https://github.com/Morettek/DeskcommCRM.git"
 git -C "$c" config "url.$principal.insteadOf" "https://github.com/Morettek/DeskcommCRM.git"
-git -C "$c" config --add "url.$principal.insteadOf" "https://github.com/melgarafael/DeskcommCRM.git"
+git -C "$c" config "url.$original.insteadOf" "https://github.com/melgarafael/DeskcommCRM.git"
+git -C "$c" remote add upstream "https://github.com/melgarafael/DeskcommCRM.git"
+git -C "$c" fetch -q upstream
+if git -C "$c" rev-parse -q --verify refs/remotes/upstream/do-original >/dev/null; then
+  ok "cenário montado: a branch do original, com a 0299, está no clone"
+else falha "cenário montado: a branch do original, com a 0299, está no clone" "o fetch do upstream não trouxe a branch"; fi
 mkdir -p "$c/scripts"; cp "$GATE_ORIGEM" "$c/scripts/checar-colisao-de-migration.sh"
 git -C "$c" switch -q -c fix/pr
 migrar "$c" "20260917221000_0277_meu.sql"; commit "$c" "PR com migration nova"
@@ -553,6 +567,8 @@ export FAKE_GH_PAI="melgarafael/DeskcommCRM"; saida="$(gate_prs "7" "$c")"; code
 assert_exit "$code" 0 "a origin que é o produto não reprova"
 assert_contains "$saida" "em Morettek/DeskcommCRM" "consulta os PRs do próprio produto"
 assert_not_contains "$saida" "a origin é um FORK" "não trata o produto como clone de contribuidor"
+assert_not_contains "$saida" "NNNN=0300" "a 0299 do remoto do original não vira o teto"
+assert_not_contains "$saida" "0299" "nem aparece como dono de número"
 
 echo "28. o próprio PR depois de AMEND não se acusa"
 # (a) amend só da mensagem: a cabeça publicada tem o MESMO arquivo, mas deixou de ser ancestral
