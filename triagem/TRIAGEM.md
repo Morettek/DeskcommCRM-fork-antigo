@@ -121,7 +121,7 @@ Nesta ordem:
 A acolhida **não contém juízo técnico**. É isso, e só isso, que a torna segura de ser automática:
 ela não pode estar errada sobre o mérito porque não fala do mérito. Ela diz três coisas — o CI está
 sendo liberado, onde olhar o que trava o merge, e quando vem o veredito. O texto vive em
-`references/resposta-ao-contribuidor.md`, espelhado em `.github/workflows/acolhida.yml`.
+`references/resposta-ao-contribuidor.md`. O fork removeu a acolhida automática; a resposta ao contribuidor, se houver, é manual.
 
 Todo comentário desta triagem abre com a âncora invisível `<!-- triagem-de-pr:v1:pass=N -->`. Leia as
 âncoras existentes antes de escrever: **acolhida nunca é postada duas vezes.**
