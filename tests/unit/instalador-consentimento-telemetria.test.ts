@@ -26,14 +26,20 @@ describe("consentimento de telemetria no primeiro install", () => {
   it("o instalador distingue primeira execução de uma escolha já gravada", () => {
     expect(install).toContain('if [ -z "${SENTRY_DSN+x}" ]; then');
     expect(install).toContain('SENTRY_DSN="off"');
-    expect(install).toContain('SENTRY_DSN=""');
     expect(install).toContain('envq SENTRY_DSN "${SENTRY_DSN:-}"');
   });
 
-  it("a documentação do template explica as três escolhas persistentes", () => {
-    expect(template).toContain("O install.sh pergunta na primeira instalação");
+  it("o instalador não oferece enviar a um Sentry que não existe", () => {
+    // Não há Sentry de comunidade (lib/sentry/dsn.ts): um "sim" aqui não enviaria
+    // nada, e o instalador agradeceria por uma telemetria desligada.
+    expect(install).not.toContain("Enviar relatórios de erro anonimizados");
+    expect(install).not.toContain("Sentry da comunidade, com");
+  });
+
+  it("a documentação do template explica o padrão desligado e as duas escolhas", () => {
+    expect(template).toContain("DESLIGADA por padrão");
     expect(template).toContain("SENTRY_DSN=off");
-    expect(template).toContain("SENTRY_DSN=             → aceita o Sentry da comunidade");
     expect(template).toContain("SENTRY_DSN=<seu-dsn>");
+    expect(template).not.toContain("aceita o Sentry da comunidade");
   });
 });

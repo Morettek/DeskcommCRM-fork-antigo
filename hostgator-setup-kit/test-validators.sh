@@ -2810,7 +2810,7 @@ STUB
   }
   telemetria_ok "template copiado (sem escolha): o --yes grava off, não consente por ninguém" \
     "$SENTRY_DO_TEMPLATE" '"off"'
-  telemetria_ok "quem ACEITOU (chave declarada e vazia) continua aceitando na reexecução" \
+  telemetria_ok "chave declarada e vazia (desligado, como off) é preservada na reexecução" \
     "SENTRY_DSN=''" '""'
   telemetria_ok "DSN próprio sobrevive à reexecução" \
     "SENTRY_DSN='https://abc123@o0.ingest.sentry.io/42'" '"https://abc123@o0.ingest.sentry.io/42"'

@@ -788,19 +788,17 @@ Este é um projeto **self-host**: cada pessoa roda o CRM na **própria infraestr
 - **LGPD — atenção:** quem **hospeda** a instância é o **controlador** dos dados pessoais
   ali tratados (clientes, conversas, pedidos), com as obrigações legais decorrentes. Os
   mantenedores do projeto **não são** controladores nem operadores da sua instância, e não
-  têm acesso ao seu banco, ao seu WhatsApp nem ao seu storage. A única coisa que pode sair
-  da sua máquina para nós é o relatório de erro descrito abaixo — e só se você deixar.
-- **Telemetria (Sentry):** o `install.sh` **pergunta** durante a instalação e respeita a
-  sua resposta; em modo não-interativo, sem `SENTRY_DSN` definido, a telemetria fica
-  **desligada**. Se você aceitar o Sentry da comunidade, o que é enviado são **relatórios
-  de erro** (stack trace) com CPF, telefone e e-mail substituídos, cabeçalhos sensíveis
-  removidos, e token de webhook/convite redigido da URL — **sem** rastreamento de
-  performance e **sem** replay de sessão contínuo, que ficam em 0 nesse caminho. Vai
-  junto do erro a gravação dos instantes que o antecederam, com texto e mídia mascarados,
-  as mesmas URLs redigidas e nenhuma gravação nas páginas com credencial na URL
-  ([`lib/sentry/replay.ts`](lib/sentry/replay.ts)). Para desligar a
-  qualquer momento: `SENTRY_DSN=off` no `.env`. Para mandar ao **seu** Sentry (aí sim com
-  performance e replay): `SENTRY_DSN=<seu-dsn>`. O que é redigido, e por quê, está em
+  têm acesso ao seu banco, ao seu WhatsApp nem ao seu storage. Nada sai da sua máquina
+  para nós.
+- **Telemetria (Sentry):** **desligada por padrão** — sem `SENTRY_DSN` configurado, nenhum
+  relatório de erro sai da instalação, e o `install.sh` grava `SENTRY_DSN=off`. O envio só
+  acontece se **você** configurar `SENTRY_DSN=<seu-dsn>` no `.env`, apontando para o **seu**
+  Sentry (com performance e replay). Mesmo aí, vão relatórios de erro (stack trace) com CPF,
+  telefone e e-mail substituídos, cabeçalhos sensíveis removidos e token de webhook/convite
+  redigido da URL; a gravação que acompanha o erro tem texto e mídia mascarados, as mesmas
+  URLs redigidas e nenhuma gravação nas páginas com credencial na URL
+  ([`lib/sentry/replay.ts`](lib/sentry/replay.ts)). Para desligar de novo: `SENTRY_DSN=off`
+  (ou vazio) no `.env`. O que é redigido, e por quê, está em
   [`lib/sentry/scrub.ts`](lib/sentry/scrub.ts); a resolução do DSN em
   [`lib/sentry/dsn.ts`](lib/sentry/dsn.ts).
 

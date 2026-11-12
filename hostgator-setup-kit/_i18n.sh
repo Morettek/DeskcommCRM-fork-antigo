@@ -342,16 +342,6 @@ Pon TRAEFIK_NETWORK=<nombre> en el .env con la red correcta antes de volver a in
 identifique a rede dele e ponha TRAEFIK_NETWORK=<nome> no .env antes de tentar de novo."]="No pude averiguar la red Docker de tu Traefik. Ejecuta 'docker network ls',
 identifica su red y pon TRAEFIK_NETWORK=<nombre> en el .env antes de volver a intentarlo."
   ["  (entrypoints do seu Traefik: {1} para HTTP, {2} para HTTPS)"]="  (entrypoints de tu Traefik: {1} para HTTP, {2} para HTTPS)"
-  ["Telemetria de erros (opcional)"]="Telemetría de errores (opcional)"
-  ["Podemos receber os relatórios de ERRO desta instalação (stack trace) para"]="Podemos recibir los reportes de ERROR de esta instalación (stack trace) para"
-  ["corrigir bugs que afetam todo mundo. CPF, telefone e e-mail são substituídos,"]="corregir errores que afectan a todos. El CPF, teléfono y correo se sustituyen,"
-  ["cabeçalhos sensíveis removidos e tokens de webhook/convite redigidos da URL."]="se quitan los encabezados sensibles y se redactan los tokens de webhook/invitación de la URL."
-  ["NÃO enviamos rastreamento de performance nem replay de sessão."]="NO enviamos rastreo de rendimiento ni repetición de sesión."
-  ["Seus dados de clientes, conversas e banco NUNCA saem daqui."]="Tus datos de clientes, conversaciones y base de datos NUNCA salen de aquí."
-  ["Você pode mudar depois no .env, a qualquer momento."]="Puedes cambiarlo después en el .env, en cualquier momento."
-  ["  Enviar relatórios de erro anonimizados? (s/N) "]="  ¿Enviar reportes de error anonimizados? (s/N) "
-  ["✓ Telemetria de erros ligada — obrigado, isso ajuda o projeto."]="✓ Telemetría de errores activada — gracias, esto ayuda al proyecto."
-  ["✓ Telemetria desligada — nada será enviado."]="✓ Telemetría desactivada — no se enviará nada."
   ["Escrevendo .env"]="Escribiendo .env"
   ["→ preservando {1} variável(is) que você acrescentou à mão"]="→ preservando {1} variable(s) que agregaste a mano"
   ["⚠ APP_IMAGE está pinado por digest."]="⚠ APP_IMAGE está fijado por digest."
@@ -491,9 +481,9 @@ identifica su red y pon TRAEFIK_NETWORK=<nombre> en el .env antes de volver a in
 
   # ── install.sh: telemetria_no_banner() ───────────────────────────────────
   ["  Telemetria: DESLIGADA — nenhum relatório de erro sai desta instalação."]="  Telemetría: DESACTIVADA — ningún reporte de error sale de esta instalación."
-  ["  Para ligar, apague a linha SENTRY_DSN do .env e rode: {1}"]="  Para activarla, borra la línea SENTRY_DSN del .env y ejecuta: {1}"
-  ["  Telemetria: LIGADA — só relatórios de erro anonimizados vão ao Sentry do"]="  Telemetría: ACTIVADA — solo reportes de error anonimizados van al Sentry del"
-  ["  projeto. Para desligar, ponha SENTRY_DSN='off' no .env e rode: {1}"]="  proyecto. Para desactivarla, pon SENTRY_DSN='off' en el .env y ejecuta: {1}"
+  ["  Para mandar os erros ao SEU Sentry, ponha SENTRY_DSN=<seu-dsn> no .env e rode: {1}"]="  Para enviar los errores a TU Sentry, pon SENTRY_DSN=<tu-dsn> en el .env y ejecuta: {1}"
+  ["  Telemetria: LIGADA — os relatórios de erro vão ao Sentry de SENTRY_DSN."]="  Telemetría: ACTIVADA — los reportes de error van al Sentry de SENTRY_DSN."
+  ["  Para desligar, ponha SENTRY_DSN='off' no .env e rode: {1}"]="  Para desactivarla, pon SENTRY_DSN='off' en el .env y ejecuta: {1}"
 
   # ── install.sh: mensaje final "Instalación concluida" (DONE) ────────────
   ["Instalação concluída!"]="¡Instalación completada!"
