@@ -1422,13 +1422,28 @@ IMAGEM_APP_DEFAULT="${IMG_APP}:${VERSAO_ALVO}"
 # ainda não existem, então a saída é a do pré-voo ARM64 acima: sem o painel de
 # recuperação, que sugeriria desfazer o que não existe.
 IMAGEM_CONFERIDA="${APP_IMAGE:-$IMAGEM_APP_DEFAULT}"
-recusar_imagem_do_app() {
+# A dica de onde corrigir segue a ORIGEM da referência recusada, na ordem em que
+# ela venceu: o rascunho é carregado depois do .env, e o .env depois do ambiente.
+# Sem APP_IMAGE, a referência é a versão publicada, e não há linha a corrigir.
+origem_da_app_image() {
+  [ -n "${APP_IMAGE:-}" ] || return 0
+  if [ -f "$PARTIAL_FILE" ] && grep -qE '^APP_IMAGE=.' "$PARTIAL_FILE"; then printf rascunho
+  elif [ -f .env ] && grep -qE '^APP_IMAGE=.' .env; then printf dotenv
+  else printf ambiente
+  fi
+}
+recusar_imagem_do_app() {  # recusar_imagem_do_app <rascunho|dotenv|ambiente|digitada|vazio>
   c_red "✖ $(t "Não instalei: a imagem do app não está disponível. Confira a referência acima; para construir as imagens aqui DE PROPÓSITO: {1}" "DESKCOMM_BUILD_LOCAL=1 bash hostgator-setup-kit/install.sh --yes")"
-  [ -z "${APP_IMAGE:-}" ] || c_red "  $(t "A referência é a APP_IMAGE do .env: corrija-a, ou apague a linha APP_IMAGE= para usar a versão publicada, e rode de novo.")"
+  case "${1:-}" in
+    dotenv)   c_red "  $(t "A referência é a APP_IMAGE do .env: corrija-a, ou apague a linha APP_IMAGE= para usar a versão publicada, e rode de novo.")" ;;
+    rascunho) c_red "  $(t "A referência veio do rascunho {1}: apague a linha APP_IMAGE= dele para usar a versão publicada, e rode de novo." "$PARTIAL_FILE")" ;;
+    ambiente) c_red "  $(t "A referência é a variável de ambiente APP_IMAGE desta sessão: corrija-a ou remova-a, e rode de novo.")" ;;
+    digitada) c_red "  $(t "A referência foi digitada na tela de conferência: rode de novo e escolha outra, ou deixe o campo vazio para usar a versão publicada.")" ;;
+  esac
   trap - EXIT
   exit 1
 }
-conferir_imagem_do_app "$IMAGEM_CONFERIDA" || recusar_imagem_do_app
+conferir_imagem_do_app "$IMAGEM_CONFERIDA" || recusar_imagem_do_app "$(origem_da_app_image)"
 
 case "$CAMINHO_DA_VERSAO" in
   stable)
@@ -1589,7 +1604,7 @@ fi
 # APP_IMAGE trocada na tela de conferência: a referência nova também é
 # conferida antes de segredo, .env ou schema.
 if [ "${APP_IMAGE:-}" != "$IMAGEM_CONFERIDA" ]; then
-  conferir_imagem_do_app "${APP_IMAGE:-}" || recusar_imagem_do_app
+  conferir_imagem_do_app "${APP_IMAGE:-}" || recusar_imagem_do_app digitada
 fi
 # Só agora a APP_IMAGE vai para o rascunho (`save_partial` a segura até aqui):
 # gravada antes, uma referência recusada voltaria na rodada seguinte e seria

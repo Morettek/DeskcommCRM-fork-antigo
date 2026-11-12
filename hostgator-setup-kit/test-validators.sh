@@ -2696,6 +2696,16 @@ STUB
     exit 1
   fi
   printf '  ✓ a APP_IMAGE trocada na tela de conferência é conferida e recusada (HTTP 404)\n'
+  # A dica de onde corrigir segue a origem: a referência foi DIGITADA e não há
+  # linha APP_IMAGE no .env, então mandar apagá-la de lá seria mandar procurar
+  # o que não existe.
+  if grep -qF "A referência é a APP_IMAGE do .env" <<<"$saida"; then
+    printf '  ✗ a recusa mandou corrigir o .env, mas a referência foi digitada na tela\n'; exit 1
+  fi
+  if ! grep -qF "A referência foi digitada na tela de conferência" <<<"$saida"; then
+    printf '  ✗ a recusa não disse que a referência foi digitada na tela\n'; exit 1
+  fi
+  printf '  ✓ e a dica diz que ela foi digitada na tela, não manda corrigir o .env\n'
   if grep -q '^APP_IMAGE=' "$VPS_PROJ/.env.partial" 2>/dev/null; then
     printf '  ✗ a referência recusada foi para o rascunho: %s\n' "$(grep '^APP_IMAGE=' "$VPS_PROJ/.env.partial")"; exit 1
   fi
