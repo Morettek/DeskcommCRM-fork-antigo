@@ -479,6 +479,10 @@ identifica su red y pon TRAEFIK_NETWORK=<nombre> en el .env antes de volver a in
   ["Quando der 307, rode de novo o mesmo comando de instalação: ele confere"]="Cuando dé 307, vuelve a ejecutar el mismo comando de instalación: revisa"
   ["o que falta e termina, sem apagar nada."]="lo que falta y termina, sin borrar nada."
 
+  # ── _common.sh: conferir_imagem_do_app() ─────────────────────────────────
+  ["A imagem do app {1} não está disponível no registro (HTTP {2})."]="La imagen de la app {1} no está disponible en el registro (HTTP {2})."
+  ["Essa versão ainda não foi publicada, ou o pacote não está público. Nada foi criado nem alterado."]="Esa versión aún no se publicó, o el paquete no es público. No se creó ni se modificó nada."
+  ["Não instalei: a imagem do app não está disponível. Confira a referência acima; para construir as imagens aqui DE PROPÓSITO: {1}"]="No instalé: la imagen de la app no está disponible. Revisa la referencia de arriba; para construir las imágenes aquí A PROPÓSITO: {1}"
   # ── install.sh: telemetria_no_banner() ───────────────────────────────────
   ["  Telemetria: DESLIGADA — nenhum relatório de erro sai desta instalação."]="  Telemetría: DESACTIVADA — ningún reporte de error sale de esta instalación."
   ["  Para mandar os erros ao SEU Sentry, ponha SENTRY_DSN=<seu-dsn> no .env e rode: {1}"]="  Para enviar los errores a TU Sentry, pon SENTRY_DSN=<tu-dsn> en el .env y ejecuta: {1}"

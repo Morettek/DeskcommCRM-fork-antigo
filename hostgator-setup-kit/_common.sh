@@ -2584,14 +2584,21 @@ ultima_versao_publicada() {
 # E o literal escapava da catraca por acidente: `namespace-das-imagens.test.ts`
 # procura a string contígua `ghcr.io/melgarafael`, e a URL do token a parte em
 # `ghcr.io/token?scope=repository:melgarafael/`.
+#
+# O GHCR recusa já no TOKEN (403) o pacote que não existe ou é privado. Antes
+# esse 403 virava 000 ("sem rede"), e um namespace sem pacote nenhum — o de um
+# fork que ainda não publicou — passava por instalação sem rede, falha aberta.
 ghcr_status() {
-  local img="$1" tag="$2" tok registry owner
+  local img="$1" tag="$2" tok registry owner resp
   registry="${IMG_NS%%/*}"
   owner="${IMG_NS#*/}"
-  tok="$(curl -fsS --max-time 6 \
-          "https://${registry}/token?scope=repository:${owner}/${img}:pull&service=${registry}" 2>/dev/null \
-        | sed -n 's/.*"token":"\([^"]*\)".*/\1/p')" || true
-  if [ -z "$tok" ]; then printf '000'; return 0; fi
+  resp="$(curl -sS --max-time 6 -w '\n%{http_code}' \
+          "https://${registry}/token?scope=repository:${owner}/${img}:pull&service=${registry}" 2>/dev/null)" || true
+  tok="$(printf '%s' "$resp" | sed -n 's/.*"token":"\([^"]*\)".*/\1/p')"
+  if [ -z "$tok" ]; then
+    case "${resp##*$'\n'}" in 401|403) printf '%s' "${resp##*$'\n'}" ;; *) printf '000' ;; esac
+    return 0
+  fi
   curl -s -o /dev/null --max-time 6 -w '%{http_code}' \
     -H "Authorization: Bearer $tok" \
     -H 'Accept: application/vnd.oci.image.index.v1+json,application/vnd.docker.distribution.manifest.list.v2+json,application/vnd.docker.distribution.manifest.v2+json' \
@@ -2616,6 +2623,39 @@ trio_publicado() {
   for i in deskcommcrm deskcomm-worker deskcomm-scheduler deskcomm-voice-agent; do
     [ "$(ghcr_status "$i" "$tag")" = "200" ] || return 1
   done
+  return 0
+}
+
+# A imagem do app que a instalação vai subir existe e é pública? Pergunta pela
+# referência COMPLETA (`<registro>/<dono>/<nome>:<tag>` ou `@sha256:…`), com a
+# mesma sonda do `ghcr_status`. Sem isto, num namespace sem pacote (um fork que
+# ainda não publicou), o install.sh criava o projeto Supabase, aplicava o schema
+# e só morria no `up -d`.
+#   404/401/403 → recusa, nomeando a referência | 000 (sem resposta) → segue,
+#   porque travar por falta de rede trocaria disponibilidade por previsibilidade.
+# Quem constrói aqui (APP_PULL_POLICY=never, DESKCOMM_BUILD_LOCAL=1) não depende
+# do registro, e referência sem registro e dono (`deskcommcrm:local`) também não.
+conferir_imagem_do_app() {  # conferir_imagem_do_app <referência> → 0 segue, 1 recusa
+  local ref="${1:-}" repo tag st
+  [ "${APP_PULL_POLICY:-}" = never ] && return 0
+  build_local_pedido && return 0
+  case "$ref" in */*/*) ;; *) return 0 ;; esac
+  if [ "${ref#*@}" != "$ref" ]; then
+    repo="${ref%@*}"; tag="${ref#*@}"
+    # `nome:tag@sha256:…`: quem vale é o digest, e a tag sai do nome.
+    case "${repo##*/}" in *:*) repo="${repo%:*}" ;; esac
+  else
+    repo="${ref%:*}"; tag="${ref##*:}"
+    # `registro:5000/x/y` sem tag: o ':' é da porta, e a tag é a implícita.
+    case "$tag" in */*|"$ref") repo="$ref"; tag=latest ;; esac
+  fi
+  st="$(IMG_NS="${repo%/*}"; ghcr_status "${repo##*/}" "$tag")"
+  case "$st" in
+    401|403|404)
+      printf '%s\n' "$(t "A imagem do app {1} não está disponível no registro (HTTP {2})." "$ref" "$st")" >&2
+      printf '%s\n' "$(t "Essa versão ainda não foi publicada, ou o pacote não está público. Nada foi criado nem alterado.")" >&2
+      return 1 ;;
+  esac
   return 0
 }
 

@@ -1287,35 +1287,6 @@ if [ "${REVERSE_PROXY:-}" = "traefik" ] && [ -z "$traefik_container" ]; then
   fi
 fi
 
-# ── Supabase automático (opcional) ──────────────────────────────────────────
-# Criar o projeto no navegador e copiar 4 campos era o passo mais LENTO da
-# instalação (medido: ~59min de preparação contra ~3min de script) e o mais
-# fácil de errar — copiar a "Direct connection", que é IPv6-only e não conecta
-# de um VPS IPv4, é a armadilha campeã.
-#
-# Com SUPABASE_ACCESS_TOKEN no ambiente e as credenciais ainda vazias, o
-# projeto é criado aqui e as 4 variáveis entram direto no fluxo, sem copiar e
-# colar. Sem o token, nada muda: seguem as perguntas de sempre.
-if [ -z "${NEXT_PUBLIC_SUPABASE_URL:-}" ] && [ -n "${SUPABASE_ACCESS_TOKEN:-}" ]; then
-  step "$(t "Criando o projeto Supabase automaticamente")"
-  _sb_out="$(bash "$KIT_DIR/supabase-provision.sh" "${APP_NAME:-DeskcommCRM}" "${SUPABASE_REGION:-sa-east-1}")" \
-    || die "$(t "Não consegui criar o projeto Supabase. Crie no painel e rode de novo sem SUPABASE_ACCESS_TOKEN.")"
-  # O script imprime `CHAVE='valor'` em stdout (o visual dele vai para stderr).
-  # A leitura é por parse, não por `eval` — o porquê está em
-  # sb_carrega_credenciais(), e `test-validators.sh` cobra isso.
-  sb_carrega_credenciais "$_sb_out"
-  unset _sb_out
-
-  # Credencial que não chegou tem que parar AQUI. Sem esta checagem o install
-  # seguiria com a variável vazia e morreria lá na frente, longe da causa — e a
-  # pessoa veria "erro de conexão" em vez de "o provisionamento não devolveu X".
-  if [ -z "${NEXT_PUBLIC_SUPABASE_URL:-}" ] || [ -z "${NEXT_PUBLIC_SUPABASE_ANON_KEY:-}" ] \
-     || [ -z "${SUPABASE_SERVICE_ROLE_KEY:-}" ] || [ -z "${SUPABASE_DB_URL:-}" ]; then
-    die "$(t "O provisionamento não devolveu as 4 credenciais. Crie o projeto no painel e rode de novo sem SUPABASE_ACCESS_TOKEN.")"
-  fi
-  c_grn "$(t "✓ Supabase pronto — as 4 credenciais entraram sozinhas")"
-fi
-
 # Cada linha: VARIÁVEL|pergunta|padrão|validador|secret|opcional
 # A ordem importa: a URL do projeto vem antes das chaves porque os validadores
 # das chaves batem contra ela (chave de outro projeto é erro comum e mudo).
@@ -1454,6 +1425,50 @@ else
 fi
 IMAGEM_APP_DEFAULT="${IMG_APP}:${VERSAO_ALVO}"
 
+# ── A imagem do app existe? ANTES de criar projeto Supabase, .env ou schema ──
+# Num namespace sem pacote (um fork que ainda não publicou, ou pacote privado)
+# a instalação criava o projeto Supabase, aplicava o schema e só morria no
+# `up -d`. A conferência mora em `conferir_imagem_do_app` (_common.sh), com a
+# mesma sonda de registro do `trio_publicado`. Nada foi criado ainda, então a
+# saída é a do pré-voo ARM64 acima: sem o painel de recuperação, que sugeriria
+# desfazer o que não existe.
+IMAGEM_CONFERIDA="${APP_IMAGE:-$IMAGEM_APP_DEFAULT}"
+if ! conferir_imagem_do_app "$IMAGEM_CONFERIDA"; then
+  c_red "✖ $(t "Não instalei: a imagem do app não está disponível. Confira a referência acima; para construir as imagens aqui DE PROPÓSITO: {1}" "DESKCOMM_BUILD_LOCAL=1 bash hostgator-setup-kit/install.sh --yes")"
+  trap - EXIT
+  exit 1
+fi
+
+# ── Supabase automático (opcional) ──────────────────────────────────────────
+# Criar o projeto no navegador e copiar 4 campos era o passo mais LENTO da
+# instalação (medido: ~59min de preparação contra ~3min de script) e o mais
+# fácil de errar — copiar a "Direct connection", que é IPv6-only e não conecta
+# de um VPS IPv4, é a armadilha campeã.
+#
+# Com SUPABASE_ACCESS_TOKEN no ambiente e as credenciais ainda vazias, o
+# projeto é criado aqui e as 4 variáveis entram direto no fluxo, sem copiar e
+# colar. Sem o token, nada muda: seguem as perguntas de sempre.
+if [ -z "${NEXT_PUBLIC_SUPABASE_URL:-}" ] && [ -n "${SUPABASE_ACCESS_TOKEN:-}" ]; then
+  step "$(t "Criando o projeto Supabase automaticamente")"
+  _sb_out="$(bash "$KIT_DIR/supabase-provision.sh" "${APP_NAME:-DeskcommCRM}" "${SUPABASE_REGION:-sa-east-1}")" \
+    || die "$(t "Não consegui criar o projeto Supabase. Crie no painel e rode de novo sem SUPABASE_ACCESS_TOKEN.")"
+  # O script imprime `CHAVE='valor'` em stdout (o visual dele vai para stderr).
+  # A leitura é por parse, não por `eval` — o porquê está em
+  # sb_carrega_credenciais(), e `test-validators.sh` cobra isso.
+  sb_carrega_credenciais "$_sb_out"
+  unset _sb_out
+
+  # Credencial que não chegou tem que parar AQUI. Sem esta checagem o install
+  # seguiria com a variável vazia e morreria lá na frente, longe da causa — e a
+  # pessoa veria "erro de conexão" em vez de "o provisionamento não devolveu X".
+  if [ -z "${NEXT_PUBLIC_SUPABASE_URL:-}" ] || [ -z "${NEXT_PUBLIC_SUPABASE_ANON_KEY:-}" ] \
+     || [ -z "${SUPABASE_SERVICE_ROLE_KEY:-}" ] || [ -z "${SUPABASE_DB_URL:-}" ]; then
+    die "$(t "O provisionamento não devolveu as 4 credenciais. Crie o projeto no painel e rode de novo sem SUPABASE_ACCESS_TOKEN.")"
+  fi
+  c_grn "$(t "✓ Supabase pronto — as 4 credenciais entraram sozinhas")"
+fi
+
+
 FIELDS=(
   "DOMAIN|Domínio do CRM (ex: crm.suaempresa.com.br)||v_domain||"
   "ACME_EMAIL|Seu e-mail (avisos de SSL)||v_email||"
@@ -1554,6 +1569,14 @@ else
       die "$(t "Corrija o .env e rode de novo.")"
     fi
   done
+fi
+
+# APP_IMAGE trocada na tela de conferência: a referência nova também é
+# conferida antes de segredo, .env ou schema.
+if [ "${APP_IMAGE:-}" != "$IMAGEM_CONFERIDA" ] && ! conferir_imagem_do_app "${APP_IMAGE:-}"; then
+  c_red "✖ $(t "Não instalei: a imagem do app não está disponível. Confira a referência acima; para construir as imagens aqui DE PROPÓSITO: {1}" "DESKCOMM_BUILD_LOCAL=1 bash hostgator-setup-kit/install.sh --yes")"
+  trap - EXIT
+  exit 1
 fi
 
 # Derivados
@@ -2659,8 +2682,11 @@ fi
 # .env do exemplo saindo com a telemetria ligada sem ninguém escolher). O texto
 # passa a refletir a escolha feita, em vez de afirmar um padrão.
 telemetria_no_banner() {
-  # Vazio também é desligado (lib/sentry/dsn.ts): não há Sentry de comunidade.
-  if [ "${SENTRY_DSN:-}" = "off" ] || [ -z "${SENTRY_DSN:-}" ]; then
+  # Os mesmos valores que lib/sentry/dsn.ts lê como desligado: vazio, off (em
+  # qualquer caixa), false e 0. Não há Sentry de comunidade.
+  local SENTRY_DSN="${SENTRY_DSN:-}"
+  case "$SENTRY_DSN" in "" | [Oo][Ff][Ff] | false | 0) SENTRY_DSN=off ;; esac
+  if [ "${SENTRY_DSN:-}" = "off" ]; then
     printf '%s\n' "$(t "  Telemetria: DESLIGADA — nenhum relatório de erro sai desta instalação.")"
     printf '%s\n' "$(t "  Para mandar os erros ao SEU Sentry, ponha SENTRY_DSN=<seu-dsn> no .env e rode: {1}" "docker compose $(dc_files) up -d")"
   else

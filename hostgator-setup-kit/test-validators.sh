@@ -2065,11 +2065,15 @@ STUBOCI
   #
   # `DUBLE_GHCR` permite ao teste escolher o cenário: vazio/`200` = as três
   # imagens publicadas; `403` = pacote privado; `404` = não existe.
+  # `DUBLE_GHCR_APP` responde só pela imagem do APP (padrão: o mesmo de
+  # `DUBLE_GHCR`): o install.sh recusa cedo quando é ELA que falta
+  # (`conferir_imagem_do_app`), e segue construindo quando faltam as outras.
   cat > "$raiz/bin/curl" <<'STUBCURL'
 #!/usr/bin/env bash
 case "$*" in
   *releases/latest*) printf '{"tag_name":"%s"}' "${DUBLE_RELEASE_TAG:-v1.66.1}" ;;
   *ghcr.io/token*) printf '{"token":"dublê"}' ;;
+  *ghcr.io/v2/*/deskcommcrm/manifests/*) printf '%s' "${DUBLE_GHCR_APP:-${DUBLE_GHCR:-200}}" ;;
   *ghcr.io/v2/*)   printf '%s' "${DUBLE_GHCR:-200}" ;;
   # O v_supabase_url exige o GoTrue: o JSON de /auth/v1/verify sem parâmetros.
   *auth/v1/verify*) printf '{"msg":"Verify requires a verification type"}\n400' ;;
@@ -2156,8 +2160,9 @@ chegou_na_deteccao() {
 # As RESPOSTAS do modo interativo, na ordem em que o instalador pergunta: o
 # proxy (o que se testa aqui), depois os 7 campos que o BASE_ENV deixa vazios de
 # propósito (APP_IMAGE, OPENAI_API_KEY, APP_NAME, APP_ACCENT_HEX, SUPPORT_EMAIL,
-# RESEND_API_KEY, RESEND_FROM_EMAIL — todos com Enter), a tela de conferência,
-# a telemetria e o aviso de DNS ('c' = seguir assim mesmo).
+# RESEND_API_KEY, RESEND_FROM_EMAIL — todos com Enter), a tela de conferência
+# e o aviso de DNS ('c' = seguir assim mesmo). A pergunta de telemetria saiu do
+# install.sh (não há Sentry de comunidade), e o Enter dela saiu da fila.
 # As respostas que vêm DEPOIS da do proxy reverso, na ordem em que o install.sh
 # as consome. É uma fila posicional: pergunta nova no meio do script desloca
 # tudo daqui para baixo, e o sintoma NÃO aponta para cá — o cenário simplesmente
@@ -2172,9 +2177,10 @@ chegou_na_deteccao() {
 # Contagem de Enters antes do 'c', medida com
 #   eval "$(grep -m1 '^RESTO_DAS_PERGUNTAS=' test-validators.sh)"
 #   printf '%s' "${RESTO_DAS_PERGUNTAS%%c*}" | grep -c ''
-# → era 9 antes de APP_ACCENT_HEX entrar em FIELDS, 10 depois dela, e é 11
-#   desde que APP_LOCALE (o idioma da instalação) entrou logo após APP_NAME.
-RESTO_DAS_PERGUNTAS=$'\n\n\n\n\n\n\n\n\n\n\n\nc\n'
+# → era 9 antes de APP_ACCENT_HEX entrar em FIELDS, 10 depois dela, 11 desde
+#   que APP_LOCALE (o idioma da instalação) entrou logo após APP_NAME, chegou a
+#   12 e voltou a 11 quando a pergunta de telemetria saiu.
+RESTO_DAS_PERGUNTAS=$'\n\n\n\n\n\n\n\n\n\n\nc\n'
 
 # A posição da cor DENTRO da fila acima — SUPABASE_ACCESS_TOKEN + 1 provedor +
 # APP_IMAGE + OPENAI + APP_NAME + APP_LOCALE e ela é a 7ª. Fica numa variável porque a fila com a cor RESPONDIDA
@@ -2520,8 +2526,11 @@ exit 0
 STUB
   export REPO_URL="$origem"
   export DUBLE_GHCR=403          # pacote existe mas está PRIVADO
+  # …o do worker, do agendador e da voz. O do APP responde: sem ele a instalação
+  # recusa antes de criar qualquer coisa — é o caso logo abaixo deste.
+  export DUBLE_GHCR_APP=200
   saida="$(rodar install.sh --yes)"
-  unset DUBLE_GHCR REPO_URL
+  unset DUBLE_GHCR DUBLE_GHCR_APP REPO_URL
 
   if ! grep -q "construídas neste servidor" <<<"$saida"; then
     printf '  ✗ com as imagens inalcançáveis, o instalador não avisou que ia construir aqui\n'
@@ -2537,6 +2546,52 @@ STUB
   printf '  ✓ e mesmo assim conclui a instalação (constrói é lento, não é impedimento)\n'
 ) || fail=1
 rm -rf "$TMP_PRIV"
+
+echo "packaging: sem a imagem do APP no registro, recusa ANTES de criar qualquer coisa"
+# Medido no fork que ainda não publicou: o kit aponta para um namespace sem pacote,
+# e o install.sh criava o projeto Supabase, aplicava o schema e só morria no
+# `up -d`. A recusa agora vem antes de projeto, segredo, .env e schema. O remoto
+# é um caminho que não existe: a versão volta vazia sem ir à rede, e o alvo é
+# `latest` — o que importa aqui é a imagem, não o número.
+imagem_do_app_caso() {  # imagem_do_app_caso <descrição> <DUBLE_GHCR_APP> <linha extra do .env> <recusa|segue>
+  local desc="$1" status="$2" extra="$3" espera="$4" raiz
+  raiz="$(mktemp -d)"
+  (
+    montar_vps "$raiz" "crmimg" <<'STUB'
+#!/usr/bin/env bash
+printf '%s\n' "$*" >> "$DOCKER_LOG"
+case "$1" in
+  compose) case "$*" in *" exec "*) printf 'healthy\n{"data":{"status":"healthy"}}\n' ;; esac; exit 0 ;;
+esac
+exit 0
+STUB
+    mkdir -p "$VPS_PROJ/supabase"; : > "$VPS_PROJ/supabase/baseline.sql"
+    export REPO_URL="$raiz/nao-existe.git" DUBLE_GHCR_APP="$status"
+    saida="$(rodar install.sh --yes "$extra")"
+    if [ "$espera" = recusa ]; then
+      if ! grep -qE "A imagem do app ghcr\.io/[a-z0-9-]+/deskcommcrm:[^ ]+ não está disponível no registro \(HTTP $status\)" <<<"$saida"; then
+        printf '  ✗ %s — a recusa não nomeou a referência completa da imagem do app\n' "$desc"
+        printf '     saída: %s\n' "$(printf '%s' "$saida" | grep -v '^$' | tail -3 | tr '\n' ' ')"
+        exit 1
+      fi
+      # Nada foi criado: o .env continua o do cenário (sem segredo gerado) e o
+      # schema não foi aplicado.
+      if grep -q '^INTERNAL_SECRET=' "$VPS_PROJ/.env" || grep -q 'Aplicando o schema' <<<"$saida"; then
+        printf '  ✗ %s — recusou DEPOIS de escrever o .env ou aplicar o schema\n' "$desc"; exit 1
+      fi
+    elif ! grep -qE '^OWNER_PASSWORD="' "$VPS_PROJ/.env"; then
+      printf '  ✗ %s — não chegou a escrever o .env inteiro\n' "$desc"
+      printf '     última linha da saída: %s\n' "$(printf '%s' "$saida" | grep -v '^$' | tail -1)"
+      exit 1
+    fi
+    printf '  ✓ %s\n' "$desc"
+  ) || fail=1
+  rm -rf "$raiz"
+}
+imagem_do_app_caso "imagem do app inexistente (404): recusa antes de .env e schema" 404 "" recusa
+imagem_do_app_caso "imagem do app privada (403): recusa antes de .env e schema" 403 "" recusa
+imagem_do_app_caso "imagem do app publicada (200): segue e escreve o .env" 200 "" segue
+imagem_do_app_caso "APP_PULL_POLICY=never (construída aqui): não consulta o registro e segue" 404 "APP_PULL_POLICY='never'" segue
 
 echo "integração: os TRÊS provedores de IA que o instalador oferece"
 # A pergunta "qual IA vai atender" tem três respostas, e até aqui só uma delas
