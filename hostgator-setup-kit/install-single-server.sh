@@ -140,16 +140,22 @@ else
   # Supabase local de pé e o .env do CRM gravado. A referência é a MESMA que o
   # install.sh resolve: a APP_IMAGE de um .env que já exista (lida sem carregar o
   # resto dele) ou a versão de `resolver_versao_da_instalacao`.
-  step "Conferindo a imagem do CRM publicada"
-  _versao="$(resolver_versao_da_instalacao "$(ultima_versao_publicada "${REPO_URL:-}")")"
-  _imagem_app="${IMG_APP}:${_versao%|*}"
-  _politica_app=""
+  # Quem constrói aqui (APP_PULL_POLICY=never no .env, DESKCOMM_BUILD_LOCAL=1)
+  # não depende do registro, e nem a versão é perguntada à rede.
+  _imagem_app=""; _politica_app=""
   if [[ -f "$ROOT_DIR/.env" ]]; then
-    _imagem_app="$(ler_env "$ROOT_DIR/.env" APP_IMAGE)"; _imagem_app="${_imagem_app:-${IMG_APP}:${_versao%|*}}"
+    _imagem_app="$(ler_env "$ROOT_DIR/.env" APP_IMAGE)"
     _politica_app="$(ler_env "$ROOT_DIR/.env" APP_PULL_POLICY)"
   fi
-  APP_PULL_POLICY="$_politica_app" conferir_imagem_do_app "$_imagem_app" \
-    || die "Instalação interrompida antes de subir o Supabase: a imagem do app não está disponível."
+  if [[ "$_politica_app" != never ]] && ! build_local_pedido; then
+    step "Conferindo a imagem do CRM publicada"
+    if [[ -z "$_imagem_app" ]]; then
+      _versao="$(resolver_versao_da_instalacao "$(ultima_versao_publicada "${REPO_URL:-}")")"
+      _imagem_app="${IMG_APP}:${_versao%|*}"
+    fi
+    APP_PULL_POLICY="$_politica_app" conferir_imagem_do_app "$_imagem_app" \
+      || die "Instalação interrompida antes de subir o Supabase: a imagem do app não está disponível."
+  fi
   unset _versao _imagem_app _politica_app
 fi
 

@@ -93,7 +93,9 @@ montar_arvore() {  # montar_arvore <árvore>
 
 rodar_instalador() {  # rodar_instalador <árvore> [<CHAVE>=<valor> ...] (exportadas)
   local raiz="$1"; shift
-  env PATH="$WORK/bin:$PATH" SINGLE_SERVER_ALLOW_LOW_MEMORY=1 DOCKER_LOG="$WORK/docker.log" \
+  # A imagem do app não está sob prova aqui (o install.sh é um registrador): a
+  # construção local declarada pula a conferência do registro, e o teste não vai à rede.
+  env PATH="$WORK/bin:$PATH" SINGLE_SERVER_ALLOW_LOW_MEMORY=1 DESKCOMM_BUILD_LOCAL=1 DOCKER_LOG="$WORK/docker.log" \
     INSTALL_SH_LOG="$WORK/install-sh.log" "$@" \
     bash "$raiz/hostgator-setup-kit/install-single-server.sh" --domain "$DOMINIO" \
     > "$WORK/saida.log" 2>&1
