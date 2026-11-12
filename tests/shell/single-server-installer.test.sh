@@ -60,7 +60,7 @@ check "guardas de dono (CRM e Supabase) antes de criar qualquer coisa" \
 # (a2) AMD64: a imagem do app é conferida ANTES de subir o Supabase, e é a MESMA
 # que o install.sh vai usar. Antes a recusa só vinha no `install.sh --yes`, com o
 # Supabase local de pé e o .env do CRM gravado.
-conferencia="$(grep -n 'conferir_imagem_do_app "\$_imagem_app"' "$INSTALLER" | cut -d: -f1)"
+conferencia="$(grep -n 'conferir_imagem_do_app "\$imagem"' "$INSTALLER" | cut -d: -f1)"
 check "AMD64 confere a imagem do app antes de criar qualquer coisa" \
   test "${conferencia:-999}" -lt "${primeiro_efeito:-0}"
 check "single-server e install.sh resolvem a versão pela mesma função" \
@@ -127,6 +127,75 @@ check "override leva a chave oficial DISABLE_SIGNUP ao container auth" \
   grep -qF 'GOTRUE_DISABLE_SIGNUP: "${DISABLE_SIGNUP:-false}"' "$OVERRIDE"
 check "override reaproveita as conexoes do Auth com o Postgres (supabase/auth#2831)" \
   grep -qF 'GOTRUE_DB_MAX_IDLE_POOL_SIZE: "${GOTRUE_DB_MAX_IDLE_POOL_SIZE:-10}"' "$OVERRIDE"
+
+# (a3) A conferência da imagem do app, PERCORRIDA: o instalador inteiro em AMD64,
+# sem construção local, com `docker`, `git ls-remote` e `curl` dublados. O registro
+# imita o fork de hoje: tags herdadas até a v1.108.0 e só a `:latest` publicada.
+# A precedência é a do install.sh — o ambiente vale, e o .env só troca a chave que
+# existe nele —, e os quatro casos medem o que um grep de nome de função não mede.
+GIT_REAL="$(command -v git)"; CURL_REAL="$(command -v curl)"
+# O namespace sai do kit (IMG_NS), nunca escrito à mão: ver namespace-das-imagens.test.ts.
+APP_LATEST="$(sed -n 's/^IMG_NS="\(.*\)"$/\1/p' "$COMMON")/deskcommcrm:latest"
+SS="$(mktemp -d)"
+mkdir -p "$SS/bin"
+printf '#!/usr/bin/env bash\nexit 0\n' > "$SS/bin/docker"
+printf '#!/usr/bin/env bash\n[ "$*" = -m ] && { printf "x86_64\\n"; exit 0; }\nexec /usr/bin/uname "$@"\n' > "$SS/bin/uname"
+cat > "$SS/bin/git" <<STUB
+#!/usr/bin/env bash
+if [ "\${1:-}" = ls-remote ]; then printf '0000000000000000000000000000000000000000\trefs/tags/v1.108.0\n'; exit 0; fi
+exec "$GIT_REAL" "\$@"
+STUB
+cat > "$SS/bin/curl" <<STUB
+#!/usr/bin/env bash
+printf '%s\n' "\$*" >> "$SS/curl.log"
+case "\$*" in
+  *ghcr.io/token*) printf '{"token":"duble"}'; exit 0 ;;
+  *ghcr.io/v2/*/manifests/latest*) printf 200; exit 0 ;;
+  *ghcr.io/v2/*) printf 404; exit 0 ;;
+esac
+exec "$CURL_REAL" "\$@"
+STUB
+chmod +x "$SS/bin/"*
+
+# arvore_ss <nome> <com-supabase|sem-supabase> [linha do .env da raiz]
+arvore_ss() {
+  local raiz="$SS/$1"
+  mkdir -p "$raiz/hostgator-setup-kit"
+  cp "$ROOT_DIR/hostgator-setup-kit/"*.sh "$OVERRIDE" "$raiz/hostgator-setup-kit/"
+  printf '#!/usr/bin/env bash\nprintf "chamado\\n" >> "%s/install-sh.log"\nexit 0\n' "$raiz" \
+    > "$raiz/hostgator-setup-kit/install.sh"
+  if [ "$2" = com-supabase ]; then
+    # O .env que o setup.sh oficial deixa: o download do Supabase é pulado.
+    mkdir -p "$raiz/.runtime/supabase"
+    printf 'ANON_KEY=a\nSERVICE_ROLE_KEY=s\nPOSTGRES_PASSWORD=p\nAPI_GW_HTTP_PORT=8000\nDISABLE_SIGNUP=false\n' \
+      > "$raiz/.runtime/supabase/.env"
+  fi
+  [ -z "${3:-}" ] || printf '%s\n' "$3" > "$raiz/.env"
+  printf '%s' "$raiz"
+}
+rodar_ss() {  # rodar_ss <árvore> [VAR=valor ...]
+  local raiz="$1"; shift
+  : > "$SS/curl.log"
+  env PATH="$SS/bin:$PATH" SINGLE_SERVER_ALLOW_LOW_MEMORY=1 "$@" \
+    bash "$raiz/hostgator-setup-kit/install-single-server.sh" --domain crm.exemplo.com.br > "$raiz/saida.log" 2>&1
+}
+
+A="$(arvore_ss a sem-supabase)"; rodar_ss "$A"
+check "(a) 404 na versão resolvida (1.108.0): para antes de criar .runtime/" \
+  bash -c '[ ! -e "$1/.runtime" ] && [ ! -e "$1/install-sh.log" ] && grep -q "ainda não publicou a versão 1.108.0" "$1/saida.log"' _ "$A"
+B="$(arvore_ss b com-supabase)"; rodar_ss "$B" APP_IMAGE="$APP_LATEST"
+check "(b) APP_IMAGE válida no AMBIENTE: confere essa e segue até o install.sh" test -s "$B/install-sh.log"
+C="$(arvore_ss c com-supabase)"; rodar_ss "$C" APP_PULL_POLICY=never
+check "(c) APP_PULL_POLICY=never no AMBIENTE: segue sem consultar o registro" \
+  bash -c 'test -s "$1/install-sh.log" && ! grep -q "ghcr.io" "$2"' _ "$C" "$SS/curl.log"
+D="$(arvore_ss d com-supabase 'DESKCOMM_BUILD_LOCAL=1')"; rodar_ss "$D"
+check "(d) DESKCOMM_BUILD_LOCAL=1 no .env: segue, como o install.sh" test -s "$D/install-sh.log"
+E="$(arvore_ss e com-supabase "APP_IMAGE=$APP_LATEST")"; rodar_ss "$E"
+check "(e) controle: APP_IMAGE no .env também vale" test -s "$E/install-sh.log"
+if [[ "$FAILS" -ne 0 ]]; then
+  for x in a b c d e; do printf -- '--- saída (%s), últimas linhas ---\n' "$x"; tail -n 4 "$SS/$x/saida.log" 2>/dev/null; done
+fi
+rm -rf "$SS"
 
 if [[ "$FAILS" -ne 0 ]]; then
   printf '\n%d teste(s) falharam.\n' "$FAILS"
