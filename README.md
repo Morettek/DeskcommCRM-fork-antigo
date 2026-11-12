@@ -325,7 +325,7 @@ Toda tela tem porta na navegação — o CI reprova tela que existe mas em que s
 | **Rate limit** | Upstash Redis (sliding window) | Serverless, free tier suficiente |
 | **AI** | Vercel AI SDK v7 — OpenRouter, Requesty, Anthropic, OpenAI e Google | Instalador pergunta qual; troca depois pela tela |
 | **Validação** | Zod | Input externo, env, payloads |
-| **Observability** | Sentry (scrub em erro, transação, span e breadcrumb) | Telemetria opt-in no install |
+| **Observability** | Sentry (scrub em erro, transação, span e breadcrumb) | Telemetria desligada por padrão; só com o seu `SENTRY_DSN` |
 | **Hospedagem** | VPS com Docker (HostGator/SP na parceria) | App + WhatsApp + workers na sua máquina |
 
 Detalhes: [`ARCHITECTURE.md`](ARCHITECTURE.md).

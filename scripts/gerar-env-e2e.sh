@@ -232,10 +232,11 @@ OWNER_PASSWORD=QaVps!2026#Dono
 OWNER_ORG_NAME=Loja-QA-VPS
 
 NEXT_TELEMETRY_DISABLED=1
-# Telemetria DESLIGADA na suíte, e não é preferência: sem isto o SDK do browser
-# assume o DSN da comunidade (\`lib/sentry/dsn.ts\` → DEFAULT_SENTRY_DSN) e a suíte
-# MANDA DADO para o Sentry de produção do projeto — mesma família do e2e que
-# escrevia no banco de produção. E o inverso morde igual: em 2026-08-10 a
+# Telemetria DESLIGADA na suíte, e não é preferência. Até a troca de identidade do
+# fork, sem isto o SDK do browser assumia o DSN da comunidade (o do projeto
+# original, hoje \`DSN_DA_COMUNIDADE_ORIGINAL\` em \`lib/sentry/dsn.ts\`) e a suíte
+# MANDAVA DADO para um Sentry de produção — mesma família do e2e que escrevia no
+# banco de produção. Hoje vazio também desliga; o \`off\` não depende desse padrão. E o inverso morde igual: em 2026-08-10 a
 # organização do Sentry estava suspensa por cota, o ingest respondeu 429 a tudo, o
 # SDK cuspiu erro de console em toda tela e \`olhar-telas-do-epico\` reprovou. A cor
 # do CI não pode depender do estado de cobrança de um terceiro.

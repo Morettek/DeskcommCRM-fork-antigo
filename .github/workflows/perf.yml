@@ -38,10 +38,10 @@ jobs:
         run: pnpm build
         env:
           NEXT_TELEMETRY_DISABLED: "1"
-          # "off", não vazio: vazio seleciona o Sentry DA COMUNIDADE
-          # (lib/sentry/dsn.ts:8-10). A intenção aqui sempre foi desligar, e
-          # com aspas vazias ela não era alcançada — o build seguia com o DSN
-          # padrão embutido.
+          # "off" explícito. Até a troca de identidade do fork, vazio selecionava
+          # o Sentry DA COMUNIDADE, e o build seguia com o DSN padrão embutido;
+          # hoje vazio também desliga (lib/sentry/dsn.ts), e o "off" não depende
+          # desse padrão.
           SENTRY_DSN: "off"
 
       - name: Report bundle sizes

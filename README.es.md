@@ -272,7 +272,7 @@ Toda pantalla tiene puerta en la navegación — el CI reprueba una pantalla que
 | **Rate limit** | Upstash Redis (sliding window) | Serverless, el free tier alcanza |
 | **IA** | Vercel AI SDK v7 — OpenRouter, Requesty, Anthropic, OpenAI y Google | El instalador pregunta cuál; se cambia después desde la pantalla |
 | **Validación** | Zod | Input externo, env, payloads |
-| **Observabilidad** | Sentry (scrub en error, transacción, span y breadcrumb) | Telemetría opt-in en la instalación |
+| **Observabilidad** | Sentry (scrub en error, transacción, span y breadcrumb) | Telemetría apagada por defecto; solo con tu `SENTRY_DSN` |
 | **Hosting** | Cualquier VPS con Docker (HostGator/SP en la alianza) | App + WhatsApp + workers en tu propia máquina |
 
 Detalles: [`ARCHITECTURE.md`](ARCHITECTURE.md).

@@ -316,7 +316,7 @@ Every screen has a door in the navigation — CI fails a screen that exists but 
 | **Rate limit** | Upstash Redis (sliding window) | Serverless, free tier is enough |
 | **AI** | Vercel AI SDK v7 — OpenRouter, Requesty, Anthropic, OpenAI and Google | The installer asks which; switch later from the screen |
 | **Validation** | Zod | External input, env, payloads |
-| **Observability** | Sentry (scrubbed in errors, transactions, spans and breadcrumbs) | Opt-in telemetry at install time |
+| **Observability** | Sentry (scrubbed in errors, transactions, spans and breadcrumbs) | Telemetry off by default; only with your own `SENTRY_DSN` |
 | **Hosting** | Any VPS with Docker (HostGator/SP in the partnership) | App + WhatsApp + workers on your own box |
 
 Details: [`ARCHITECTURE.md`](ARCHITECTURE.md).

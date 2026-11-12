@@ -40,9 +40,9 @@ ENV NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL \
     NODE_OPTIONS=--max-old-space-size=4096
 
 # Turbopack (`pnpm build`): ~4min vs ~34min do webpack num VPS. O bloco `webpack:`
-# do Sentry (tree-shake + upload de sourcemap em build-time) é ignorado, mas o
-# Sentry RUNTIME segue ativo (DSN hardcoded nas configs); aqui o ganho de tempo
-# de build é o que importa pro leigo.
+# do Sentry (tree-shake + upload de sourcemap em build-time) é ignorado; o
+# Sentry RUNTIME só envia se o operador puser o próprio DSN em SENTRY_DSN (sem
+# ele, nada sai). Aqui o ganho de tempo de build é o que importa pro leigo.
 RUN pnpm build
 
 # `outputFileTracingIncludes` (next.config.ts) copia o CONTEÚDO de pdfjs-dist e
