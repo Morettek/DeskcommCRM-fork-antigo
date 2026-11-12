@@ -240,8 +240,9 @@ prática está no [`README.md`](README.md) §Desenvolvimento.
 funciona para qualquer pessoa e é onde a resposta fica registrada para quem vier depois. Para bug,
 [abra uma issue](https://github.com/Morettek/DeskcommCRM/issues/new/choose).
 
-Se for algo que não cabe em público (segurança, por exemplo): `rafael@maudibrasil.com.br` — o mesmo
-endereço do [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md).
+Se for algo que não cabe em público (segurança, por exemplo): o [relato privado do GitHub](https://github.com/Morettek/DeskcommCRM/security/advisories/new),
+que chega só aos mantenedores — o mesmo canal do [`SECURITY.md`](SECURITY.md) e do
+[`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md).
 
 > Esta seção apontava para um Discord interno cujo convite mora num Notion privado — inalcançável
 > justamente para quem mais precisava dela, que é quem vem de fora. Ficou aqui como lembrete de que

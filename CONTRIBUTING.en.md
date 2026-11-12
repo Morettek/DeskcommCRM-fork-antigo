@@ -237,8 +237,9 @@ See [`README.en.md`](README.en.md) §Development — how to run locally.
 channel, works for anyone and is where the answer stays recorded for whoever comes after. For bugs,
 [open an issue](https://github.com/Morettek/DeskcommCRM/issues/new/choose).
 
-If it is something that does not fit in public (security, for example): `rafael@maudibrasil.com.br` — the same
-address as in [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md).
+If it is something that does not fit in public (security, for example): GitHub's [private report](https://github.com/Morettek/DeskcommCRM/security/advisories/new),
+which reaches only the maintainers — the same channel as in [`SECURITY.md`](SECURITY.md) and
+[`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md).
 
 > This section used to point to an internal Discord whose invite lives in a private Notion — unreachable
 > precisely for whoever needed it most, who is the one coming from outside. It stays here as a reminder that

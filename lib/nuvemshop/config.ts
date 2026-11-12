@@ -10,7 +10,10 @@
 
 export const NUVEMSHOP_AUTH_BASE = "https://www.tiendanube.com";
 export const NUVEMSHOP_API_BASE = "https://api.tiendanube.com/v1";
-export const APP_USER_AGENT = "DeskcommCRM (rafael@maudibrasil.com.br)";
+// Só o nome do app: o contato era o e-mail pessoal do autor original. A URL do
+// repositório não entra porque `tests/unit/branding.test.ts` proíbe host de
+// terceiro e marca nova no código que embarca.
+export const APP_USER_AGENT = "DeskcommCRM";
 
 export interface NuvemshopConfig {
   appId: string;
