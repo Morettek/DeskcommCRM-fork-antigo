@@ -132,15 +132,15 @@ conseguir a chave antes (OpenRouter é o caminho mais rápido de criar). Agora a
 dá para instalar sem ela e cadastrar depois em IA › Credenciais; a tela final lembra quem pulou.
 Vale para quem atualizar para a versão seguinte.
 
-**Telemetria ligada sem ninguém escolher** (issue #668): acontece quando o `.env` foi copiado do
-exemplo. Para desligar: `SENTRY_DSN=off` no `.env` e `docker compose -f docker-compose.prod.yml up -d`.
-Instalações anteriores à próxima versão mostram um banner que afirma "por padrão os erros são
-enviados" — o padrão da pergunta é **não** enviar; o banner foi corrigido para dizer a escolha feita.
+**Telemetria ligada sem ninguém escolher** (issue #668, **resolvida**): não há mais Sentry de
+comunidade. Com `SENTRY_DSN` vazio ou `off` nada é enviado, e o instalador não pergunta mais. Só
+envia quem põe o próprio DSN em `SENTRY_DSN=<dsn>`; para desligar de novo, `SENTRY_DSN=off` no
+`.env` e `docker compose -f docker-compose.prod.yml up -d`.
 
 **`--yes` instalou no canal `stable` em vez de uma versão.** O `.env` copiado do exemplo trouxe
 `APP_IMAGE=...:stable`. Confira `grep -E '^(APP|WORKER|SCHEDULER)_IMAGE=' .env`; para fixar uma
 versão, `bash hostgator-setup-kit/update.sh --to v1.17.0 --force` (a tag publicada mais recente
-aparece em github.com/melgarafael/DeskcommCRM/releases).
+aparece em github.com/Morettek/DeskcommCRM/releases).
 
 **`update.sh` recusou com código 3.** Ele não conseguiu confirmar o que é mais novo (clone raso
 sem internet para o GitHub, ou a versão pedida é anterior à instalada). **Nada foi tocado.** Tente

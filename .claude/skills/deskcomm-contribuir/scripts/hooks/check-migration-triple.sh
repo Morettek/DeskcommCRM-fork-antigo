@@ -26,7 +26,14 @@ top="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 # O dono do produto mora em ../dono.sh; o repositório do produto sai dele.
 DONO_DO_PRODUTO=""
 . "$(dirname "${BASH_SOURCE[0]}")/../dono.sh" 2>/dev/null || true
-REPO_DO_PRODUTO="${DONO_DO_PRODUTO}/DeskcommCRM"
+REPO_DO_PRODUTO="${DONO_DO_PRODUTO:+${DONO_DO_PRODUTO}/DeskcommCRM}"
+# Sem dono.sh a URL sairia `https://github.com//DeskcommCRM.git`: a dica vira
+# reinstalar os guias, nunca um endereço com o dono vazio.
+if [ -n "$REPO_DO_PRODUTO" ]; then
+  COMO_TRAZER_O_PRODUTO="git remote add upstream https://github.com/${REPO_DO_PRODUTO}.git && git fetch upstream"
+else
+  COMO_TRAZER_O_PRODUTO="reinstale os guias (bash scripts/instalar-guias.sh) — o dono.sh, que diz qual é o repositório do produto, não está ao lado deste script"
+fi
 
 novas="$(git diff --cached --name-status | awk '$1 == "A" && $2 ~ /^supabase\/migrations\/.*\.sql$/ { print $2 }')"
 # ── A POPULAÇÃO da unicidade (issue #1273) ──────────────────────────────────────
@@ -101,7 +108,7 @@ fi
 [ -z "$novas" ] && exit 0
 
 if [ "$aviso_fork" = 1 ]; then
-  echo "pre-commit AVISO: NNNN/timestamp NÃO MEDIDOS contra a main do PRODUTO: nenhum remoto aponta para ${REPO_DO_PRODUTO} (a base é a origin/main do seu fork, que pode estar atrás). Corrija com: git remote add upstream https://github.com/${REPO_DO_PRODUTO}.git && git fetch upstream (#1273)" >&2
+  echo "pre-commit AVISO: NNNN/timestamp NÃO MEDIDOS contra a main do PRODUTO: nenhum remoto aponta para ${REPO_DO_PRODUTO:-o repositório do produto} (a base é a origin/main do seu fork, que pode estar atrás). Corrija com: ${COMO_TRAZER_O_PRODUTO} (#1273)" >&2
 fi
 
 staged="$(git diff --cached --name-only)"

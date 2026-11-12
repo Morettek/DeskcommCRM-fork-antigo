@@ -207,6 +207,13 @@ saida="$(bash .agents/skills/deskcomm-contribuir/scripts/pre-voo.sh 2>&1)"
 assert_not_contains "$saida" "✓ NNNN" "o pré-voo não dá ✓ de NNNN livre sobre a main do fork"
 assert_not_contains "$saida" "✓ próximo NNNN" "nem ✓ de próximo NNNN"
 assert_contains "$saida" "NÃO MEDIDO contra a main do PRODUTO" "o pré-voo declara a régua"
+# Sem o dono.sh (cópia antiga dos guias), nenhuma dica sai com o dono vazio:
+# `https://github.com//DeskcommCRM.git` é um endereço que não existe.
+rm -f .agents/skills/deskcomm-contribuir/scripts/dono.sh
+saida="$(bash .agents/skills/deskcomm-contribuir/scripts/pre-voo.sh 2>&1)"
+assert_not_contains "$saida" "github.com//" "sem dono.sh, o pré-voo não monta URL com o dono vazio"
+assert_contains "$saida" "reinstale os guias" "e diz como sair dali"
+git checkout -q -- .agents/skills/deskcomm-contribuir/scripts/dono.sh
 
 # ── 2-quater. Trazer a main do PRODUTO não é "migration nova" ─────────────────
 # Com a população alargada para refs/remotes/*, uma branch do principal com OUTRO
@@ -567,7 +574,7 @@ for sh in bash zsh; do
   passo0 "$cmd" "$sem_guias" "$antigo/app"
   if [ "$code" != 0 ] && [ -z "$out" ]; then ok "($sh) clone sem o script, sem instalação global: sai com erro e sem resposta inventada"; else falha "($sh) clone sem o script, sem instalação global: sai com erro e sem resposta inventada" "code=$code out=$out"; fi
   assert_contains "$err" "^NÃO MEDIDO — não achei o quem-sou.sh no clone .*c7-antigo" "($sh) e o erro diz o que não achou e onde procurou"
-  assert_contains "$err" "comando de uma linha do README (https://github.com/melgarafael/DeskcommCRM#readme) e rode de novo" "($sh) e diz como sair dali"
+  assert_contains "$err" "comando de uma linha do README (https://github.com/Morettek/DeskcommCRM#readme) e rode de novo" "($sh) e diz como sair dali"
   passo0 "$cmd" "$sem_guias" "$fora"
   if [ "$code" != 0 ] && [ -z "$out" ]; then ok "($sh) fora de clone, sem instalação global: sai com erro e sem resposta inventada"; else falha "($sh) fora de clone, sem instalação global: sai com erro e sem resposta inventada" "code=$code out=$out"; fi
   assert_contains "$err" "^NÃO MEDIDO — não achei o quem-sou.sh nem nas pastas globais" "($sh) e o erro não finge que havia clone"

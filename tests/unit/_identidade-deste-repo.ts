@@ -57,6 +57,13 @@ export const NAMESPACE_DESTE_REPO = "ghcr.io/morettek";
 export const REPOSITORIO_DESTE_REPO = "Morettek/DeskcommCRM";
 
 /**
+ * O projeto de onde este fork saiu e que ele deixou de seguir. Existe para os
+ * gates que proíbem apontar PARA ele (guia que manda clonar de lá instala o
+ * produto de outro dono), nunca para apontar.
+ */
+export const REPOSITORIO_ORIGINAL = "melgarafael/DeskcommCRM";
+
+/**
  * O dono de uma referência `<registry>/<dono>`.
  *
  * Nunca minusculiza: quem compara é que decide a caixa. O GHCR exige namespace
